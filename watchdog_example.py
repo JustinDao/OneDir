@@ -9,7 +9,16 @@ from watchdog.events import FileSystemEventHandler
 
 class OneDirHandler(FileSystemEventHandler):
     def on_created(self, event):
-        print "Created!"
+        print "Created " + event.src_path
+    
+    def on_deleted(self, event):
+        print "Deleted " + event.src_path
+
+    def on_modified(self, event):
+        print "Modified " + event.src_path
+
+    def on_moved(self, event):
+        print "Moved " + event.src_path + " to " + event.dest_path
 
 def get_username():
     return pwd.getpwuid(os.getuid()).pw_name
@@ -29,7 +38,7 @@ if __name__ == "__main__":
     logging_handler = LoggingEventHandler()
     
     observer = Observer()
-    observer.schedule(logging_handler, directory, recursive=True)
+    # observer.schedule(logging_handler, directory, recursive=True)
     observer.schedule(event_handler, directory, recursive=True)
 
     observer.start()
