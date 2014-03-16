@@ -42,6 +42,7 @@ if __name__ == "__main__":
     observer.schedule(event_handler, directory, recursive=True)
 
     observer.start()
+    print "Service started."
     try:
         while True:
             time.sleep(1)
