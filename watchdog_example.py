@@ -3,9 +3,12 @@ import time
 import logging
 import os
 import pwd
+import requests
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
+
+server_url = "http://localhost:5000"
 
 class OneDirHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -24,28 +27,38 @@ def get_username():
     return pwd.getpwuid(os.getuid()).pw_name
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
+    print "Login:"
+    username = raw_input("username: ")
+    password = raw_input("password: ")
 
-    username = get_username()
-    directory = "/home/" + username + "/onedir/"
+    login_info = {'username': username, 'password': password}
+    r = requests.post(server_url+"/login", data=login_info)
+    if (r.text == "Valid!"):
+        print "Valid Login!"
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s - %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+        username = get_username()
+        directory = "/home/" + username + "/onedir/"
 
-    event_handler = OneDirHandler()
-    logging_handler = LoggingEventHandler()
-    
-    observer = Observer()
-    # observer.schedule(logging_handler, directory, recursive=True)
-    observer.schedule(event_handler, directory, recursive=True)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
-    observer.start()
-    print "Service started."
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+        event_handler = OneDirHandler()
+        logging_handler = LoggingEventHandler()
+        
+        observer = Observer()
+        # observer.schedule(logging_handler, directory, recursive=True)
+        observer.schedule(event_handler, directory, recursive=True)
+
+        observer.start()
+        print "Service started."
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            observer.stop()
+        observer.join()
+    else:
+        print "Invalid login!"
