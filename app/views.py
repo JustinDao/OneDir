@@ -39,12 +39,66 @@ def create_file_request():
     if not os.path.exists(main_path):
       os.makedirs(main_path)
 
-    filepath = (main_path + request.form['filepath'])
+    filepath = main_path + request.form['filepath']
     f = request.files['file']
     f.save(filepath)
 
     return "File created"
   return "Failed to create file."
+
+@app.route('/modify_file', methods=['PUT'])
+def modify_file_request():
+  username = request.form['username']
+  if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      return "File does not exist."
+
+    filepath = main_path + request.form['filepath']
+    
+    if os.path.isfile(filepath):
+      f = request.files['file']
+      f.save(filepath)
+      return "File modified"
+    else:
+      return "File does not exist."
+  return "Failed to modify file."
+
+@app.route('/move_file', methods=['PUT'])
+def move_file_request():
+  username = request.form['username']
+  if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      return "File does not exist."
+
+    src = main_path + request.form['src']
+    dest = main_path + request.form['dest']
+    os.rename(src, dest)
+
+    return "File moved."
+  return "Failed to move file."
+
+@app.route('/delete_file', methods=['DELETE'])
+def delete_file_request():
+  username = request.form['username']
+  if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      return "File does not exist."
+
+    filepath = main_path + request.form['filepath']
+
+    os.remove(filepath)
+
+    return "File deleted."
+  return "Failed to delete file."
 
 def valid_login(username, password):
   connection = sqlite3.connect('server.db')
