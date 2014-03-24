@@ -2,6 +2,7 @@ from app import app
 from flask import request
 import sqlite3
 import os
+import shutil
 
 
 
@@ -66,8 +67,11 @@ def modify_file_request():
       return "File does not exist."
   return "Failed to modify file."
 
-@app.route('/move_file', methods=['PUT'])
-def move_file_request():
+
+
+
+@app.route('/move_item', methods=['PUT'])
+def move_item_request():
   username = request.form['username']
   if valid_login(username, request.form['password']):
     cwd = os.getcwd()
@@ -80,11 +84,17 @@ def move_file_request():
     dest = main_path + request.form['dest']
     os.rename(src, dest)
 
-    return "File moved."
-  return "Failed to move file."
+    if os.path.isfile(dest):
+      return "File moved."
+    elif os.path.isdir(dest):
+      return "Directory moved."
+  return "Failed to move item."
+  
 
-@app.route('/delete_file', methods=['DELETE'])
-def delete_file_request():
+
+
+@app.route('/delete_item', methods=['DELETE'])
+def delete_item_request():
   username = request.form['username']
   if valid_login(username, request.form['password']):
     cwd = os.getcwd()
@@ -95,10 +105,39 @@ def delete_file_request():
 
     filepath = main_path + request.form['filepath']
 
-    os.remove(filepath)
+    if os.path.isfile(filepath):
+      os.remove(filepath)
+      return "File deleted."
+    elif os.path.isdir(filepath):
+      shutil.rmtree(filepath)
+      return "Directory deleted."
+    
+  return "Failed to delete item."
 
-    return "File deleted."
-  return "Failed to delete file."
+
+
+
+
+
+@app.route('/create_dir', methods=['POST'])
+def create_dir_request():
+  username = request.form['username']
+  if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      os.makedirs(main_path)
+
+    dirpath = main_path + request.form['dirpath']
+
+    if not os.path.exists(dirpath):
+      os.makedirs(dirpath)
+      return "Directory created"
+    return "Directory already exists"
+
+  return "Failed to create directory."
+
 
 def valid_login(username, password):
   connection = sqlite3.connect('server.db')

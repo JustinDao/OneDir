@@ -26,27 +26,37 @@ class OneDirHandler(FileSystemEventHandler):
     def on_created(self, event):
         print "Created " + event.src_path
 
-        filepath = event.src_path.replace(directory, "")
-        file_data = {'file': open(event.src_path, 'rb')}
-        info = {'username': username, 'password': password, 'filepath': filepath}
+        if os.path.isfile(event.src_path):
+            filepath = event.src_path.replace(directory, "")
+            file_data = {'file': open(event.src_path, 'rb')}
+            info = {'username': username, 'password': password, 'filepath': filepath}
 
-        r = requests.post(server_url +"/create_file", data=info, files=file_data)
+            r = requests.post(server_url +"/create_file", data=info, files=file_data)
+
+        elif os.path.isdir(event.src_path):
+            dirpath = event.src_path.replace(directory, "")
+            info = {'username': username, 'password': password, 'dirpath': dirpath}
+
+            r = requests.post(server_url +"/create_dir", data=info)
         # print r.text
         
     
     def on_deleted(self, event):
         print "Deleted " + event.src_path
 
+        #handles file vs. dir on server
+
         filepath = event.src_path.replace(directory, "")
-
         info = {'username': username, 'password': password, 'filepath': filepath}
+        r = requests.delete(server_url +"/delete_item", data=info)
 
-        r = requests.delete(server_url +"/delete_file", data=info)
         # print r.text
 
 
     def on_modified(self, event):
         print "Modified " + event.src_path
+
+        #Should never encounter this with a directory
 
         filepath = event.src_path.replace(directory, "")
         file_data = {'file': open(event.src_path, 'rb')}
@@ -58,12 +68,15 @@ class OneDirHandler(FileSystemEventHandler):
     def on_moved(self, event):
         print "Moved " + event.src_path + " to " + event.dest_path
 
+        #handles file vs. dir on server
+        
         src = event.src_path.replace(directory, "")
         dest = event.dest_path.replace(directory, "")
 
         info = {'username': username, 'password': password, 'src': src, 'dest': dest}
 
-        r = requests.put(server_url +"/move_file", data=info)
+        r = requests.put(server_url +"/move_item", data=info)
+
         # print r.text
 
 
