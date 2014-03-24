@@ -4,15 +4,32 @@ import logging
 import os
 import pwd
 import requests
+import getpass
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
 
 server_url = "http://localhost:5000"
 
+username = ""
+password = ""
+
+def get_username():
+    return pwd.getpwuid(os.getuid()).pw_name
+
+main_username = get_username()
+directory = "/home/" + main_username + "/onedir/"
+
 class OneDirHandler(FileSystemEventHandler):
     def on_created(self, event):
         print "Created " + event.src_path
+
+        filepath = event.src_path.replace(directory, "")
+        file_data = {'file': open(event.src_path, 'rb')}
+        info = {'username': username, 'password': password, 'filepath': filepath}
+
+        r = requests.post(server_url +"/create_file", data=info, files=file_data)
+        
     
     def on_deleted(self, event):
         print "Deleted " + event.src_path
@@ -23,16 +40,10 @@ class OneDirHandler(FileSystemEventHandler):
     def on_moved(self, event):
         print "Moved " + event.src_path + " to " + event.dest_path
 
-def get_username():
-    return pwd.getpwuid(os.getuid()).pw_name
-
 def start_service():
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-
-    username = get_username()
-    directory = "/home/" + username + "/onedir/"
+                        datefmt='%Y-%m-%d %H:%M:%S')    
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -65,15 +76,27 @@ if __name__ == "__main__":
     if command.lower() == "login":
         print "Login:"
         username = raw_input("username: ")
-        password = raw_input("password: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+
+        while username_request.text != "exists":
+            username = raw_input("Username does not exist. Re-enter username: ")
+            username_info = {"username": username}
+            username_request = requests.post(server_url+"/check_username", data=username_info)
+
+        password = getpass.getpass("password: ")
 
         login_info = {'username': username, 'password': password}
         r = requests.post(server_url+"/login", data=login_info)
-        if (r.text == "valid"):
-            print "Valid Login!"
-            start_service()
-        else:
-            print "Invalid login!"
+
+        while (r.text != "valid"):
+            print "Bad password."
+            password = getpass.getpass("Retype password: ")
+            login_info = {'username': username, 'password': password}
+            r = requests.post(server_url+"/login", data=login_info)
+
+        start_service()       
+
     elif command.lower() == "sign up" or command.lower() == "signup":
         print "Sign up for OneDir!"
 
@@ -81,11 +104,17 @@ if __name__ == "__main__":
         username_info = {"username": username}
         username_request = requests.post(server_url+"/check_username", data=username_info)
 
-        while username_request.text == "invalid":
+        while username_request.text == "exists":
             username = raw_input("Username already exists. Enter another username: ")
             username_info = {"username": username}
             username_request = requests.post(server_url+"/check_username", data=username_info)
-        password = raw_input("Enter a password: ")
+        password = getpass.getpass("Enter a password: ")
+        password_confirmation = getpass.getpass("Confirm your password: ")
+
+        while (password != password_confirmation):
+            print "Passwords did not match."
+            password = getpass.getpass("Re-enter your password: ")
+            password_confirmation = getpass.getpass("Confirm your password: ")
 
         create_user_info = {'username': username, 'password': password}
 
