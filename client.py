@@ -172,6 +172,22 @@ def restore_onedir_folder(username, password):
         f = open(directory + filename, "w+")
         f.write(r.content)
 
+def share_files(username,password,f):
+    info = {'username': username, 'password': password}
+    files, folders = get_server_files_and_folders()
+    username_info = {"username": username}
+    username_request = requests.post(server_url+"/check_username", data=username_info)
+    while username_request.text != "exists":
+        username = raw_input("Username does not exist. Re-enter username: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+    password = getpass.getpass("password: ")
+    info = {"username": username,"password":password}
+    directory = "/home/" + username + "/onedir/"
+    file_data = {'file': open(directory + f, 'rb')}
+    info = {'username': username, 'password': password, 'filepath': f}
+    r = requests.post(server_url +"/create_file", data=info, files=file_data)
+
 
 def check_files():
     #local folder gets copied to server
@@ -323,9 +339,9 @@ def admin_login(username, password):
     print "Logged in as Admin!"
 
 if __name__ == "__main__":
-    print "Enter 'login' to login, or 'sign up' to create a new account:"
+    print "Enter 'login' to login, or 'sign up' to create a new account, or 'delete' to delete your account"
 
-    valid_inputs = ["login", "signup", "sign up", "admin login"]
+    valid_inputs = ["login", "signup", "sign up", "admin login","delete"]
 
     command = raw_input("")
     while(command.lower() not in valid_inputs):
@@ -336,6 +352,30 @@ if __name__ == "__main__":
 
     elif command.lower() == "admin login":
         admin_login(username, password)
+        input = raw_input("Enter 'delete' to delete a user account")
+        if input.lower() == "delete":
+            print "Delete a account:"
+            username = raw_input("username: ")
+            username_info = {"username": username}
+            username_request = requests.post(server_url+"/check_username", data=username_info)
+
+            while username_request.text != "exists":
+                username = raw_input("Username does not exist. Re-enter username: ")
+                username_info = {"username": username}
+                username_request = requests.post(server_url+"/check_username", data=username_info)
+            password = getpass.getpass("password: ")
+
+            delete_info = {'username': username, 'password': password}
+            r = requests.post(server_url+"/login", data=delete_info)
+            q = requests.post(server_url+"/delete_user", data=delete_info)
+
+            while r.text != "valid":
+                print "Bad password."
+                password = getpass.getpass("Retype password: ")
+                delete_info = {'username': username, 'password': password}
+                r = requests.post(server_url+"/login", data=delete_info)
+                q = requests.post(server_url+"/delete_user", data=delete_info)
+            print "deleted"
 
     elif command.lower() == "sign up" or command.lower() == "signup":
         print "Sign up for OneDir!"
@@ -361,3 +401,4 @@ if __name__ == "__main__":
         create_user_request = requests.post(server_url+"/create_user", data=create_user_info)
 
         start_service()
+
