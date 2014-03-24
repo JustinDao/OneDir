@@ -82,7 +82,9 @@ def move_item_request():
 
     src = main_path + request.form['src']
     dest = main_path + request.form['dest']
-    os.rename(src, dest)
+
+    if os.path.isfile(src) or os.path.isdir(src):
+      os.rename(src, dest)
 
     if os.path.isfile(dest):
       return "File moved."
