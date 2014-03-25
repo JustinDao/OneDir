@@ -20,7 +20,7 @@ cp <git repo>/inoitfy.py /usr/local/lib/python2.7/dist-packages/watchdog/observe
 Create the server database.
 
 ```bash
-sqlite3 server.db
+sqlite3 server.db < create_database.sql
 ```
 
 Start the server by running ./server.py
