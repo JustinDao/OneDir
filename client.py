@@ -66,9 +66,14 @@ class OneDirHandler(FileSystemEventHandler):
         print "Modified " + event.src_path
 
         #Should never encounter this with a directory
+        #but weird stuff happens when moved outside watchdog directory
 
         filepath = event.src_path.replace(directory, "")
-        file_data = {'file': open(event.src_path, 'rb')}
+        try:
+            file_data = {'file': open(event.src_path, 'rb')}
+        except: 
+            # should only hit this when directories are moved outside watched directory, and then deleted.
+            return
         info = {'username': username, 'password': password, 'filepath': filepath}
 
         r = requests.put(server_url +"/modify_file", data=info, files=file_data)
