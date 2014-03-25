@@ -177,9 +177,22 @@ class InotifyEmitter(EventEmitter):
                     # watched folder, only a move_from event is generated. 
                     # 
                     # If a single move_from event is detected, it calls a delete command on that file.
-                    if len(inotify_events) > inotify_events.index(event)+1 and \
-                    inotify_events[inotify_events.index(event)+1].is_moved_to:
+                    flag = False
+                    next_index = inotify_events.index(event)+1
+                    file_path = self._inotify.source_for_move(event)
+
+                    #check if a moved_to event exists with the moved_file file path as the source
+                    for evt in inotify_events[next_index:]:
+                        if evt.is_moved_to:
+                            src_path = self._inotify.source_for_move(evt)
+                            if src_path == file_path:
+                                flag = True
+                                break
+
+                    # if a moved from/to combo, don't do anything as it would normally
+                    if flag:
                         continue
+                    # else if moved outside of folder, delete it.
                     else:
                         klass = ACTION_EVENT_MAP[(event.is_directory, EVENT_TYPE_DELETED)]
                         self.queue_event(klass(event.src_path))
