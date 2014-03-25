@@ -161,7 +161,7 @@ def start_service():
     try:
         while True:
             time.sleep(1)
-            request_files()
+            # request_files()
     except KeyboardInterrupt:
         observer.stop()
     observer.join()

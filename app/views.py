@@ -1,5 +1,6 @@
 from app import app
 from flask import request
+from flask import json
 import sqlite3
 import os
 import shutil
@@ -139,6 +140,33 @@ def create_dir_request():
     return "Directory already exists"
 
   return "Failed to create directory."
+
+
+@app.route('/request_files', methods=['GET'])
+def request_files():
+  username = request.form['username']
+  if valid_login(username, request.form['password']):
+    """
+    http://code.activestate.com/recipes/577879-create-a-nested-dictionary-from-oswalk/
+    Creates a nested dictionary that represents the folder structure of rootdir
+    """
+
+    dir = {}
+
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      os.makedirs(main_path)
+
+    rootdir = main_path.rstrip(os.sep)
+    start = rootdir.rfind(os.sep) + 1
+    for path, dirs, files in os.walk(rootdir):
+        folders = path[start:].split(os.sep)
+        subdir = dict.fromkeys(files)
+        parent = reduce(dict.get, folders[:-1], dir)
+        parent[folders[-1]] = subdir
+    return json.jsonify(**dir)
 
 
 def valid_login(username, password):
