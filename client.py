@@ -172,11 +172,66 @@ def restore_onedir_folder(username, password):
         f = open(directory + filename, "w+")
         f.write(r.content)
 
-    # chunk_size = 128
 
-    # with open("file.txt", 'wb') as fd:
-    #     for chunk in r.iter_content(chunk_size):
-    #         fd.write(chunk)
+def check_files():
+    #local folder gets copied to server
+
+    info = {'username': username, 'password': password}
+    r = requests.get(server_url +"/request_files", data=info)
+    server_files =  r.json()
+
+    server_files = unicode_dict_to_string(server_files)
+    local_files = get_local_file_list(directory)
+
+    sfiles = []
+    sfolders = []
+    lfiles = []
+    lfolders = []
+
+    s, sfiles, sfolders, spath = file_recurse(server_files, sfiles, sfolders, "")
+    l, lfiles, lfolders, lpath = file_recurse(local_files, lfiles, lfolders, "")
+
+    for i,f in enumerate(sfiles):
+        sfiles[i] = f.replace(username + "/", "")
+
+    for i,f in enumerate(sfolders):
+        sfolders[i] = f.replace(username + "/", "")
+
+    for i,f in enumerate(lfiles):
+        lfiles[i] = f.replace("onedir/", "")
+
+    for i,f in enumerate(lfolders):
+        lfolders[i] = f.replace("onedir/", "")
+
+    for f in sfiles:   
+        if f not in lfiles:
+            # if file on server not on local, remove from server
+            info = {'username': username, 'password': password, 'filepath': f}
+            r = requests.delete(server_url +"/delete_item", data=info)
+
+    for f in sfolders:
+        if f not in lfolders:
+            # if folder on server not on local, remove from server
+            info = {'username': username, 'password': password, 'filepath': f}
+            r = requests.delete(server_url +"/delete_item", data=info)
+
+    for f in lfolders:
+        if f not in sfolders:
+            # if folder on local not on server, create in server
+            info = {'username': username, 'password': password, 'dirpath': f}
+            r = requests.post(server_url +"/create_dir", data=info)
+
+    for f in lfiles:
+        if f not in sfiles:
+            # if file on local not on server, create in server
+            file_data = {'file': open(directory + f, 'rb')}
+            info = {'username': username, 'password': password, 'filepath': f}
+            r = requests.post(server_url +"/create_file", data=info, files=file_data)
+
+   
+
+    
+
 
 
 def start_service():
@@ -185,7 +240,7 @@ def start_service():
                         datefmt='%Y-%m-%d %H:%M:%S')    
 
     if not os.path.exists(directory):
-        os.makedirs(directory)
+        restore_onedir_folder(username, password)
 
     event_handler = OneDirHandler()
     # logging_handler = LoggingEventHandler()
@@ -197,6 +252,7 @@ def start_service():
     observer.start()
     print "Service started."
     try:
+        check_files()
         while True:
             time.sleep(1)
             if not os.path.exists(directory):
