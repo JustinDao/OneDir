@@ -227,7 +227,12 @@ def check_files():
             file_data = {'file': open(directory + f, 'rb')}
             info = {'username': username, 'password': password, 'filepath': f}
             r = requests.post(server_url +"/create_file", data=info, files=file_data)
-
+        else:
+            # if file is on client and on server, update the server file
+            # TODO: Check if file is different first before uploading
+            file_data = {'file': open(directory + f, 'rb')}
+            info = {'username': username, 'password': password, 'filepath': f}
+            r = requests.post(server_url +"/create_file", data=info, files=file_data)
    
 
     
