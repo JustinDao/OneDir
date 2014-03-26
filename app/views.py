@@ -1,6 +1,8 @@
 from app import app
 from flask import request
 from flask import json
+from flask import make_response
+from flask import send_from_directory
 import sqlite3
 import os
 import shutil
@@ -167,6 +169,20 @@ def request_files():
         parent = reduce(dict.get, folders[:-1], dir)
         parent[folders[-1]] = subdir
     return json.jsonify(**dir)
+
+@app.route('/get_file/<path:filename>', methods=['GET'])
+def get_file(filename):
+  username = request.form['username']
+
+  if valid_login(username, request.form['password']):
+
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username
+
+    if os.path.isfile(main_path + "/" + filename): 
+      return send_from_directory(main_path, filename)
+
+  return "Failed"
 
 
 def valid_login(username, password):

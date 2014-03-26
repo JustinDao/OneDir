@@ -8,6 +8,7 @@ import pwd
 import requests
 import getpass
 import collections
+from Queue import Queue
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
@@ -110,7 +111,7 @@ def unicode_dict_to_string(data):
     else:
         return data
 
-def get_file_list(path):
+def get_local_file_list(path):
     """
     http://code.activestate.com/recipes/577879-create-a-nested-dictionary-from-oswalk/
     Creates a nested dictionary that represents the folder structure of rootdir
@@ -127,23 +128,55 @@ def get_file_list(path):
     return dir
 
 
+def file_recurse(dict, files, folders, path):
+    if dict is not None:
+        for key in dict:
+            if dict[key] is None:
+                files.append(path + key)
+            else:
+                folders.append(path + key + "/")
+                file_recurse(dict[key], files, folders, path + key + "/")
 
-def check_files(files):
-    un = username.decode('unicode-escape')
-    dir = get_file_list(directory)
-    if dir['onedir'] != files[username]:
-        diff = [x for x in dir['onedir'].keys() if x not in files[username].keys()]
-        diff += [x for x in files[username].keys() if x not in dir['onedir'].keys()]
-        print diff
-        # r = requests.get(server_url +"/get_file", data=info)
+    return dict, files, folders, path
 
-def request_files():
+
+def get_server_files_and_folders():
     info = {'username': username, 'password': password}
     r = requests.get(server_url +"/request_files", data=info)
-    files =  r.json()
-    files = unicode_dict_to_string(files)
-    check_files(files)
+    server_files =  r.json()
+    server_files = unicode_dict_to_string(server_files)
 
+    local_directory = get_local_file_list(directory)
+
+    folders = []
+    files = []    
+
+    path = directory
+    if local_directory['onedir'] != server_files[username]:
+        flist, files, folders, path = file_recurse(server_files[username], files, folders, "")
+    return files, folders
+
+
+def restore_onedir_folder(username, password):
+    os.makedirs(directory)
+    info = {'username': username, 'password': password}
+
+    files, folders = get_server_files_and_folders()
+
+    for folder in folders:
+        if not os.path.exists(directory + folder):
+            os.makedirs(directory + folder)
+
+    for filename in files:
+        r = requests.get(server_url +"/get_file/" + filename, data=info)
+        f = open(directory + filename, "w+")
+        f.write(r.content)
+
+    # chunk_size = 128
+
+    # with open("file.txt", 'wb') as fd:
+    #     for chunk in r.iter_content(chunk_size):
+    #         fd.write(chunk)
 
 
 def start_service():
@@ -166,6 +199,13 @@ def start_service():
     try:
         while True:
             time.sleep(1)
+            if not os.path.exists(directory):
+                observer.stop()
+                observer.join()
+                restore_onedir_folder(username, password)
+                observer = Observer()
+                observer.schedule(event_handler, directory, recursive=True)
+                observer.start()
             # request_files()
     except KeyboardInterrupt:
         observer.stop()
