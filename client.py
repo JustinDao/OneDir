@@ -4,7 +4,7 @@ import sys
 import time
 import logging
 import os
-import pwd
+# import pwd
 import requests
 import getpass
 import collections
@@ -14,6 +14,7 @@ from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
 from watchdog.events import FileCreatedEvent
 from datetime import datetime
+import sqlite3
 
 server_url = "http://localhost:5000"
 
@@ -22,11 +23,11 @@ password = ""
 
 updated_at = str(datetime.now())
 
-def get_username():
-    return pwd.getpwuid(os.getuid()).pw_name
+# def get_username():
+#     return pwd.getpwuid(os.getuid()).pw_name
 
-main_username = get_username()
-directory = "/home/" + main_username + "/onedir/"
+# main_username = get_username()
+# directory = "/home/" + main_username + "/onedir/"
 
 class OneDirHandler(FileSystemEventHandler):
     def on_any_event(self, event):
@@ -279,6 +280,7 @@ def user_login(username, password):
     username_info = {"username": username}
     username_request = requests.post(server_url+"/check_username", data=username_info)
 
+
     while username_request.text != "exists":
         username = raw_input("Username does not exist. Re-enter username: ")
         username_info = {"username": username}
@@ -325,7 +327,7 @@ def admin_login(username, password):
 if __name__ == "__main__":
     print "Enter 'login' to login, or 'sign up' to create a new account:"
 
-    valid_inputs = ["login", "signup", "sign up", "admin login"]
+    valid_inputs = ["login", "signup", "sign up", "admin login", "get", "change"]
 
     command = raw_input("")
     while(command.lower() not in valid_inputs):
@@ -361,3 +363,44 @@ if __name__ == "__main__":
         create_user_request = requests.post(server_url+"/create_user", data=create_user_info)
 
         start_service()
+
+
+    elif command.lower() == "get":
+        conn = sqlite3.connect('server.db')
+        result = []
+        with conn:
+            cur = conn.cursor()
+            sql_cmd = "select * from users"
+            cur.execute(sql_cmd)
+            while True:
+                page_row = cur.fetchone()
+                if page_row is None:
+                    break
+                else:
+                    print page_row
+
+    elif command.lower() == "change":
+        username = raw_input("Enter a username: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+        if username_request.text == "exists":
+            old_password = getpass.getpass("current password: ")
+            login_info = {'username': username, 'password': old_password}
+            r = requests.post(server_url+"/login", data=login_info)
+            while (r.text != "valid"):
+                print "Bad password."
+                old_password = getpass.getpass("current password: ")
+                login_info = {'username': username, 'password': old_password}
+                r = requests.post(server_url+"/login", data=login_info)
+            new_password = getpass.getpass("New password: ")
+            password_confirmation = getpass.getpass("Confirm your password: ")
+            while (new_password != password_confirmation):
+                print "Passwords did not match."
+                new_password = getpass.getpass("Re-enter your password: ")
+                password_confirmation = getpass.getpass("Confirm your password: ")
+        conn = sqlite3.connect('server.db')
+        result = []
+        with conn:
+            cur = conn.cursor()
+            sql_cmd = "update users set password=? where username=?"
+            cur.execute(sql_cmd, (new_password, username))
