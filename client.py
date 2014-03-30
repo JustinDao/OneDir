@@ -272,38 +272,70 @@ def start_service():
         observer.stop()
     observer.join()
 
+
+def user_login(username, password):
+    print "Login:"
+    username = raw_input("username: ")
+    username_info = {"username": username}
+    username_request = requests.post(server_url+"/check_username", data=username_info)
+
+    while username_request.text != "exists":
+        username = raw_input("Username does not exist. Re-enter username: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+
+    password = getpass.getpass("password: ")
+
+    login_info = {'username': username, 'password': password}
+    r = requests.post(server_url+"/login", data=login_info)
+
+    while (r.text != "valid"):
+        print "Bad password."
+        password = getpass.getpass("Retype password: ")
+        login_info = {'username': username, 'password': password}
+        r = requests.post(server_url+"/login", data=login_info)
+
+    start_service()
+
+def admin_login(username, password):
+    print "Login:"
+    username = raw_input("username: ")
+    username_info = {"username": username}
+
+    username_request = requests.post(server_url+"/check_admin", data=username_info)
+
+    while username_request.text != "exists":
+        username = raw_input("Admin does not exist. Re-enter admin name: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_admin", data=username_info)
+
+    password = getpass.getpass("password: ")
+
+    login_info = {'username': username, 'password': password}
+    r = requests.post(server_url+"/admin_login", data=login_info)
+
+    while (r.text != "valid"):
+        print "Bad password."
+        password = getpass.getpass("Retype password: ")
+        login_info = {'username': username, 'password': password}
+        r = requests.post(server_url+"/admin_login", data=login_info)
+
+    print "Logged in as Admin!"
+
 if __name__ == "__main__":
     print "Enter 'login' to login, or 'sign up' to create a new account:"
 
-    valid_inputs = ["login", "signup", "sign up"]
+    valid_inputs = ["login", "signup", "sign up", "admin login"]
 
     command = raw_input("")
     while(command.lower() not in valid_inputs):
         command = raw_input("")
 
     if command.lower() == "login":
-        print "Login:"
-        username = raw_input("username: ")
-        username_info = {"username": username}
-        username_request = requests.post(server_url+"/check_username", data=username_info)
+        user_login(username, password)
 
-        while username_request.text != "exists":
-            username = raw_input("Username does not exist. Re-enter username: ")
-            username_info = {"username": username}
-            username_request = requests.post(server_url+"/check_username", data=username_info)
-
-        password = getpass.getpass("password: ")
-
-        login_info = {'username': username, 'password': password}
-        r = requests.post(server_url+"/login", data=login_info)
-
-        while (r.text != "valid"):
-            print "Bad password."
-            password = getpass.getpass("Retype password: ")
-            login_info = {'username': username, 'password': password}
-            r = requests.post(server_url+"/login", data=login_info)
-
-        start_service()       
+    elif command.lower() == "admin login":
+        admin_login(username, password)
 
     elif command.lower() == "sign up" or command.lower() == "signup":
         print "Sign up for OneDir!"

@@ -21,12 +21,32 @@ def login():
   else:
     return "invalid"
 
+
+
+@app.route('/admin_login', methods=['POST'])
+def admin_login():
+  if valid_admin_login(request.form['username'], request.form['password']):
+    return "valid"
+  else:
+    return "invalid"
+
+
 @app.route('/check_username', methods=['POST'])
 def check_username_request():
   if user_exists(request.form['username']):
     return "exists"
   else:
     return "does not exist"
+
+
+@app.route('/check_admin', methods=['POST'])
+def check_admin_request():
+  if admin_exists(request.form['username']):
+    return "exists"
+  else:
+    return "does not exist"
+
+
 
 @app.route('/create_user', methods=['POST'])
 def create_user_request():
@@ -202,11 +222,45 @@ def valid_login(username, password):
   else:
     return False
 
+def valid_admin_login(username, password):
+  connection = sqlite3.connect('server.db')
+  cursor = connection.cursor()
+
+  info = (username, password)
+  cursor.execute("SELECT * FROM admins WHERE username = ? AND password = ?", info)
+
+  user = cursor.fetchall()
+
+  connection.commit()
+  connection.close()
+
+  if user:
+    return True
+  else:
+    return False
+
 def user_exists(username):
   connection = sqlite3.connect('server.db')
   cursor = connection.cursor()
 
   cursor.execute("SELECT * FROM users WHERE username = ?", (username,) )
+
+  user = cursor.fetchall()
+
+  connection.commit()
+  connection.close()
+
+  if user:
+    return True
+  else:
+    return False
+
+
+def admin_exists(username):
+  connection = sqlite3.connect('server.db')
+  cursor = connection.cursor()
+
+  cursor.execute("SELECT * FROM admins WHERE username = ?", (username,) )
 
   user = cursor.fetchall()
 
