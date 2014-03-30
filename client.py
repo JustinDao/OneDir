@@ -4,7 +4,7 @@ import sys
 import time
 import logging
 import os
-# import pwd
+import pwd
 import requests
 import getpass
 import collections
@@ -23,11 +23,11 @@ password = ""
 
 updated_at = str(datetime.now())
 
-# def get_username():
-#     return pwd.getpwuid(os.getuid()).pw_name
+def get_username():
+    return pwd.getpwuid(os.getuid()).pw_name
 
-# main_username = get_username()
-# directory = "/home/" + main_username + "/onedir/"
+main_username = get_username()
+directory = "/home/" + main_username + "/onedir/"
 
 class OneDirHandler(FileSystemEventHandler):
     def on_any_event(self, event):
