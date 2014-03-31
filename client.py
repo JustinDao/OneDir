@@ -8,6 +8,7 @@ import pwd
 import requests
 import getpass
 import collections
+import thread
 from Queue import Queue
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
@@ -236,9 +237,16 @@ def check_files():
             r = requests.post(server_url +"/create_file", data=info, files=file_data)
    
 
-    
-
-
+def folder_listener(handler, observer):
+    while True:
+        time.sleep(1)
+        if not os.path.exists(directory):
+            observer.stop()
+            observer.join()
+            restore_onedir_folder(username, password)
+            observer = Observer()
+            observer.schedule(handler, directory, recursive=True)
+            observer.start()
 
 def start_service():
     logging.basicConfig(level=logging.INFO,
@@ -259,23 +267,20 @@ def start_service():
     print "Service started."
     try:
         check_files()
+        thread.start_new_thread ( folder_listener, (event_handler, observer) )
         while True:
-            time.sleep(1)
-            if not os.path.exists(directory):
-                observer.stop()
-                observer.join()
-                restore_onedir_folder(username, password)
-                observer = Observer()
-                observer.schedule(event_handler, directory, recursive=True)
-                observer.start()
+            user_input = raw_input("Command: ")
+            print user_input
             # request_files()
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
 
 
-def user_login(username, password):
+def user_login():
     print "Login:"
+    global username
+    global password
     username = raw_input("username: ")
     username_info = {"username": username}
     username_request = requests.post(server_url+"/check_username", data=username_info)
@@ -334,7 +339,7 @@ if __name__ == "__main__":
         command = raw_input("")
 
     if command.lower() == "login":
-        user_login(username, password)
+        user_login()
 
     elif command.lower() == "admin login":
         admin_login(username, password)
