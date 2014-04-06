@@ -22,6 +22,7 @@ server_url = "http://localhost:5000"
 
 username = ""
 password = ""
+logged_in = False
 
 updated_at = str(datetime.now())
 
@@ -241,8 +242,11 @@ def check_files():
 def folder_listener(handler, observer):
     global username
     global password
+    global logged_in
     while True:
         time.sleep(1)
+        if not logged_in:
+            break
         if not os.path.exists(directory):
             observer.stop()
             observer.join()
@@ -254,9 +258,11 @@ def folder_listener(handler, observer):
 def user_command(user_input):
     global username
     global password
+    global logged_in
     if user_input == "logout":
         username = ""
         password = ""
+        logged_in = False
         print "You have been logged out."
         main_program() 
     elif user_input == "delete":
@@ -334,6 +340,7 @@ def file_List(dict,keyList):
     return keyList
 
 def start_service():
+    global logged_in
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')    
@@ -349,6 +356,7 @@ def start_service():
     observer.schedule(event_handler, directory, recursive=True)
 
     observer.start()
+    logged_in = True
     print "Service started."
     try:
         check_files()
@@ -366,6 +374,7 @@ def user_login():
     print "Login:"
     global username
     global password
+    global logged_in
     username = raw_input("username: ")
     username_info = {"username": username}
     username_request = requests.post(server_url+"/check_username", data=username_info)
@@ -417,6 +426,7 @@ def admin_login(username, password):
 def deleteAccount():
     global username
     global password
+    global logged_in
     confirm = raw_input("Are you sure you want to delete your account? (yes/no): ")
     print "This will delete all of your files and information from the database."
     confirm2 = raw_input("ARE YOU ABSOLUTELY SURE? (yes/no): ")
@@ -426,6 +436,7 @@ def deleteAccount():
         r = requests.delete(server_url+"/delete_user", data=login_info)
         username = ""
         password = ""
+        logged_in = False
         
 
 def main_program():
