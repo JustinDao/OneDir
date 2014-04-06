@@ -6,6 +6,7 @@ from flask import send_from_directory
 import sqlite3
 import os
 import shutil
+import datetime
 
 
 
@@ -64,6 +65,8 @@ def create_file_request():
     f = request.files['file']
     f.save(filepath)
 
+    log(username, "Created File", filepath)
+
     return "File created"
   return "Failed to create file."
 
@@ -99,6 +102,7 @@ def modify_file_request():
     if os.path.isfile(filepath):
       f = request.files['file']
       f.save(filepath)
+      log(username, "Modified File", filepath)
       return "File modified"
     else:
       return "File does not exist."
@@ -124,8 +128,10 @@ def move_item_request():
       os.rename(src, dest)
 
     if os.path.isfile(dest):
+      log(username, "Moved File", src, dest)
       return "File moved."
     elif os.path.isdir(dest):
+      log(username, "Moved Directory", src, dest)
       return "Directory moved."
   return "Failed to move item."
 
@@ -144,11 +150,12 @@ def delete_item_request():
 
     if os.path.isfile(filepath):
       os.remove(filepath)
+      log(username, "Deleted File", filepath)
       return "File deleted."
     elif os.path.isdir(filepath):
       shutil.rmtree(filepath)
-      return "Directory deleted."
-    
+      log(username, "Deleted Directory", filepath)
+      return "Directory deleted."    
   return "Failed to delete item."
 
 
@@ -170,6 +177,7 @@ def create_dir_request():
 
     if not os.path.exists(dirpath):
       os.makedirs(dirpath)
+      log(username, "Created Directory", dirpath)
       return "Directory created"
     return "Directory already exists"
 
@@ -350,3 +358,11 @@ def remove_user_from_database(username, password):
     cursor.execute("DELETE FROM users WHERE username = ? and password = ?", info)
     connection.commit()
     connection.close()
+
+def log(username, event_type, path, dest=None):
+  with open(username + ".log", "a") as f:
+    time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    dest_path = ""
+    if dest is not None:
+      dest_path = " to " + dest
+    f.write(time + " " + event_type + ": "  + path + dest_path + "\n")
