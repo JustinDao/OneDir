@@ -512,6 +512,8 @@ def deleteUser(username, password):
     print "deleted"
 
 def main_program():
+    global username
+    global password
     print "Enter 'login' to login, or 'sign up' to create a new account, or 'delete' to delete your account"
 
     valid_inputs = ["login", "signup", "sign up", "admin login", "delete"]
