@@ -72,6 +72,23 @@ def create_file_request():
     return "File created"
   return "Failed to create file."
 
+@app.route('/create_file2', methods=['POST'])
+def create_file_request2():
+  username = request.form['username']
+  if user_exists(username):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      os.makedirs(main_path)
+
+    filepath = main_path + request.form['filepath']
+    f = request.files['file']
+    f.save(filepath)
+
+    return "File created"
+  return "Failed to create file."
+
 @app.route('/modify_file', methods=['PUT'])
 def modify_file_request():
   username = request.form['username']
@@ -164,6 +181,26 @@ def create_dir_request():
   return "Failed to create directory."
 
 
+@app.route('/create_dir2', methods=['POST'])
+def create_dir_request2():
+  username = request.form['username']
+  if user_exists(username):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      os.makedirs(main_path)
+
+    dirpath = main_path + request.form['dirpath']
+
+    if not os.path.exists(dirpath):
+      os.makedirs(dirpath)
+      return "Directory created"
+    return "Directory already exists"
+
+  return "Failed to create directory."
+
+
 @app.route('/request_files', methods=['GET'])
 def request_files():
   username = request.form['username']
@@ -204,6 +241,18 @@ def get_file(filename):
 
   return "Failed"
 
+@app.route('/get_file2/<path:filename>', methods=['GET'])
+def get_file2(filename):
+  username = request.form['username']
+  if user_exists(username):
+
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username
+
+    if os.path.isfile(main_path + "/" + filename):
+      return send_from_directory(main_path, filename)
+
+  return "Failed"
 
 def valid_login(username, password):
   connection = sqlite3.connect('server.db')
