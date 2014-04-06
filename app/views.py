@@ -38,7 +38,6 @@ def check_username_request():
   else:
     return "does not exist"
 
-
 @app.route('/check_admin', methods=['POST'])
 def check_admin_request():
   if admin_exists(request.form['username']):
@@ -46,17 +45,37 @@ def check_admin_request():
   else:
     return "does not exist"
 
-
+@app.route('/delete_user', methods =['POST'])
+def delete_user_request():
+  delete_user(request.form['username'],request.form['password'])
+  return "User deleted"
 
 @app.route('/create_user', methods=['POST'])
 def create_user_request():
-  create_user(request.form['username'], request.form['password']) 
+  create_user(request.form['username'], request.form['password'])
   return "User created"
 
 @app.route('/create_file', methods=['POST'])
 def create_file_request():
   username = request.form['username']
   if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      os.makedirs(main_path)
+
+    filepath = main_path + request.form['filepath']
+    f = request.files['file']
+    f.save(filepath)
+
+    return "File created"
+  return "Failed to create file."
+
+@app.route('/create_file2', methods=['POST'])
+def create_file_request2():
+  username = request.form['username']
+  if user_exists(username):
     cwd = os.getcwd()
     main_path = cwd + "/" + username + "/"
 
@@ -114,8 +133,6 @@ def move_item_request():
     elif os.path.isdir(dest):
       return "Directory moved."
   return "Failed to move item."
-  
-
 
 
 @app.route('/delete_item', methods=['DELETE'])
@@ -148,6 +165,26 @@ def delete_item_request():
 def create_dir_request():
   username = request.form['username']
   if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    if not os.path.exists(main_path):
+      os.makedirs(main_path)
+
+    dirpath = main_path + request.form['dirpath']
+
+    if not os.path.exists(dirpath):
+      os.makedirs(dirpath)
+      return "Directory created"
+    return "Directory already exists"
+
+  return "Failed to create directory."
+
+
+@app.route('/create_dir2', methods=['POST'])
+def create_dir_request2():
+  username = request.form['username']
+  if user_exists(username):
     cwd = os.getcwd()
     main_path = cwd + "/" + username + "/"
 
@@ -204,6 +241,18 @@ def get_file(filename):
 
   return "Failed"
 
+@app.route('/get_file2/<path:filename>', methods=['GET'])
+def get_file2(filename):
+  username = request.form['username']
+  if user_exists(username):
+
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username
+
+    if os.path.isfile(main_path + "/" + filename):
+      return send_from_directory(main_path, filename)
+
+  return "Failed"
 
 def valid_login(username, password):
   connection = sqlite3.connect('server.db')
@@ -281,3 +330,11 @@ def create_user(username, password):
 
   connection.commit()
   connection.close()
+
+def delete_user(username, password):
+    connection = sqlite3.connect('server.db')
+    cursor = connection.cursor()
+    info = (username, password)
+    cursor.execute("DELETE FROM users WHERE username = ? and password =?",info)
+    connection.commit()
+    connection.close()
