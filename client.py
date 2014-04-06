@@ -9,6 +9,7 @@ import requests
 import getpass
 import collections
 import thread
+import re
 from Queue import Queue
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
@@ -364,8 +365,11 @@ def main_program():
         username_info = {"username": username}
         username_request = requests.post(server_url+"/check_username", data=username_info)
 
-        while username_request.text == "exists":
-            username = raw_input("Username already exists. Enter another username: ")
+        while username_request.text == "exists" or not re.match("^[A-Za-z0-9_-]*$", username):
+            if not re.match("^[A-Za-z0-9]*$", username):
+                username = raw_input("Not a valid username. Enter another username: ")
+            else:
+                username = raw_input("Username already exists. Enter another username: ")
             username_info = {"username": username}
             username_request = requests.post(server_url+"/check_username", data=username_info)
         password = getpass.getpass("Enter a password: ")
