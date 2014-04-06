@@ -248,6 +248,19 @@ def folder_listener(handler, observer):
             observer.schedule(handler, directory, recursive=True)
             observer.start()
 
+
+def user_command(user_input):
+    global username
+    global password
+    if user_input == "logout":
+        username = ""
+        password = ""
+        print "You have been logged out."
+        main_program() 
+    else:
+        print user_input + " is not a command."
+
+
 def start_service():
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
@@ -270,7 +283,7 @@ def start_service():
         thread.start_new_thread ( folder_listener, (event_handler, observer) )
         while True:
             user_input = raw_input("Command: ")
-            print user_input
+            user_command(user_input)
             # request_files()
     except KeyboardInterrupt:
         observer.stop()
@@ -329,7 +342,7 @@ def admin_login(username, password):
 
     print "Logged in as Admin!"
 
-if __name__ == "__main__":
+def main_program():
     print "Enter 'login' to login, or 'sign up' to create a new account:"
 
     valid_inputs = ["login", "signup", "sign up", "admin login", "get", "change"]
@@ -409,3 +422,6 @@ if __name__ == "__main__":
             cur = conn.cursor()
             sql_cmd = "update users set password=? where username=?"
             cur.execute(sql_cmd, (new_password, username))
+
+if __name__ == "__main__":
+    main_program()

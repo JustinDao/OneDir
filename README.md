@@ -3,18 +3,20 @@ Class Project for CS 3240 Spring 2014
 Running on Ubuntu 12.04 LTS
 Using Python 2.7
 
-Install Watchdog and flask
+Install Watchdog, Flask, and other modules
 
 ```bash
-pip install watchdog
-pip install flask
+sudo pip install watchdog
+sudo pip install flask
+sudo pip install requests
+sudo pip install pathtools
 ```
 
 Backup, then overwrite the inotify.py file that comes with Watchdog. 
 
 ```bash
 cp /usr/local/lib/python2.7/dist-packages/watchdog/observers/inotify.py /usr/local/lib/python2.7/dist-packages/watchdog/observers/inotify.py.bak
-cp <git repo>/inoitfy.py /usr/local/lib/python2.7/dist-packages/watchdog/observers/inotify.py
+cp <git repo>/inotify.py /usr/local/lib/python2.7/dist-packages/watchdog/observers/inotify.py
 ```
 
 Create the server database.
