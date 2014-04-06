@@ -45,11 +45,6 @@ def check_admin_request():
   else:
     return "does not exist"
 
-@app.route('/delete_user', methods =['POST'])
-def delete_user_request():
-  delete_user(request.form['username'],request.form['password'])
-  return "User deleted"
-
 @app.route('/create_user', methods=['POST'])
 def create_user_request():
   create_user(request.form['username'], request.form['password'])
@@ -241,6 +236,23 @@ def get_file(filename):
 
   return "Failed"
 
+@app.route('/delete_user', methods=['DELETE'])
+def delete_user_request():
+  username = request.form['username']
+  print "delete request"
+  if valid_login(username, request.form['password']):
+
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username
+
+    shutil.rmtree(main_path)
+
+    remove_user_from_database(username, request.form['password'])
+    print "Deleted"
+
+  return "Failed"
+
+
 @app.route('/get_file2/<path:filename>', methods=['GET'])
 def get_file2(filename):
   username = request.form['username']
@@ -331,10 +343,10 @@ def create_user(username, password):
   connection.commit()
   connection.close()
 
-def delete_user(username, password):
+def remove_user_from_database(username, password):
     connection = sqlite3.connect('server.db')
     cursor = connection.cursor()
     info = (username, password)
-    cursor.execute("DELETE FROM users WHERE username = ? and password =?",info)
+    cursor.execute("DELETE FROM users WHERE username = ? and password = ?", info)
     connection.commit()
     connection.close()
