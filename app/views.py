@@ -247,7 +247,7 @@ def get_file(filename):
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user_request():
   username = request.form['username']
-  print "delete request"
+
   if valid_login(username, request.form['password']):
 
     cwd = os.getcwd()
@@ -260,6 +260,19 @@ def delete_user_request():
 
   return "Failed"
 
+@app.route('/get_history', methods=['GET'])
+def get_history_request():
+  username = request.form['username']
+
+  if valid_login(username, request.form['password']):
+
+    content = ""
+    with open(username + ".log", "r") as f:
+      content = f.read()
+
+    return content
+
+  return "Failed"
 
 @app.route('/get_file2/<path:filename>', methods=['GET'])
 def get_file2(filename):

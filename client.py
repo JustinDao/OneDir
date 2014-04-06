@@ -270,8 +270,18 @@ def user_command(user_input):
         main_program()
     elif user_input == "share":
         share_files()
+    elif user_input == "history":
+        get_history()
     else:
         print user_input + " is not a command."
+
+def get_history():
+    global username
+    global password
+    login_info = {'username': username, 'password': password}
+    r = requests.get(server_url + "/get_history", data=login_info)
+    print r.text
+
 
 def share_files():
     files = get_local_file_list(directory)
