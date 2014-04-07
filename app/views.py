@@ -6,6 +6,7 @@ from flask import send_from_directory
 import sqlite3
 import os
 import shutil
+import datetime
 
 
 
@@ -45,11 +46,6 @@ def check_admin_request():
   else:
     return "does not exist"
 
-@app.route('/delete_user', methods =['POST'])
-def delete_user_request():
-  delete_user(request.form['username'],request.form['password'])
-  return "User deleted"
-
 @app.route('/create_user', methods=['POST'])
 def create_user_request():
   create_user(request.form['username'], request.form['password'])
@@ -68,6 +64,8 @@ def create_file_request():
     filepath = main_path + request.form['filepath']
     f = request.files['file']
     f.save(filepath)
+
+    log(username, "Created File", filepath)
 
     return "File created"
   return "Failed to create file."
@@ -104,6 +102,7 @@ def modify_file_request():
     if os.path.isfile(filepath):
       f = request.files['file']
       f.save(filepath)
+      log(username, "Modified File", filepath)
       return "File modified"
     else:
       return "File does not exist."
@@ -129,8 +128,10 @@ def move_item_request():
       os.rename(src, dest)
 
     if os.path.isfile(dest):
+      log(username, "Moved File", src, dest)
       return "File moved."
     elif os.path.isdir(dest):
+      log(username, "Moved Directory", src, dest)
       return "Directory moved."
   return "Failed to move item."
 
@@ -149,11 +150,12 @@ def delete_item_request():
 
     if os.path.isfile(filepath):
       os.remove(filepath)
+      log(username, "Deleted File", filepath)
       return "File deleted."
     elif os.path.isdir(filepath):
       shutil.rmtree(filepath)
-      return "Directory deleted."
-    
+      log(username, "Deleted Directory", filepath)
+      return "Directory deleted."    
   return "Failed to delete item."
 
 
@@ -175,6 +177,7 @@ def create_dir_request():
 
     if not os.path.exists(dirpath):
       os.makedirs(dirpath)
+      log(username, "Created Directory", dirpath)
       return "Directory created"
     return "Directory already exists"
 
@@ -238,6 +241,36 @@ def get_file(filename):
 
     if os.path.isfile(main_path + "/" + filename): 
       return send_from_directory(main_path, filename)
+
+  return "Failed"
+
+@app.route('/delete_user', methods=['DELETE'])
+def delete_user_request():
+  username = request.form['username']
+
+  if valid_login(username, request.form['password']):
+
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username
+
+    shutil.rmtree(main_path)
+
+    remove_user_from_database(username, request.form['password'])
+    print "Deleted"
+
+  return "Failed"
+
+@app.route('/get_history', methods=['GET'])
+def get_history_request():
+  username = request.form['username']
+
+  if valid_login(username, request.form['password']):
+
+    content = ""
+    with open(username + ".log", "r") as f:
+      content = f.read()
+
+    return content
 
   return "Failed"
 
@@ -331,10 +364,18 @@ def create_user(username, password):
   connection.commit()
   connection.close()
 
-def delete_user(username, password):
+def remove_user_from_database(username, password):
     connection = sqlite3.connect('server.db')
     cursor = connection.cursor()
     info = (username, password)
-    cursor.execute("DELETE FROM users WHERE username = ? and password =?",info)
+    cursor.execute("DELETE FROM users WHERE username = ? and password = ?", info)
     connection.commit()
     connection.close()
+
+def log(username, event_type, path, dest=None):
+  with open(username + ".log", "a") as f:
+    time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    dest_path = ""
+    if dest is not None:
+      dest_path = " to " + dest
+    f.write(time + " " + event_type + ": "  + path + dest_path + "\n")

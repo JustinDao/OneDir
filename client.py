@@ -22,6 +22,7 @@ server_url = "http://localhost:5000"
 
 username = ""
 password = ""
+logged_in = False
 
 updated_at = str(datetime.now())
 
@@ -235,8 +236,13 @@ def check_files():
             r = requests.post(server_url +"/create_file", data=info, files=file_data)
 
 def folder_listener(handler, observer):
+    global username
+    global password
+    global logged_in
     while True:
         time.sleep(1)
+        if not logged_in:
+            break
         if not os.path.exists(directory):
             observer.stop()
             observer.join()
@@ -248,17 +254,30 @@ def folder_listener(handler, observer):
 def user_command(user_input):
     global username
     global password
+    global logged_in
     if user_input == "logout":
         username = ""
         password = ""
+        logged_in = False
         print "You have been logged out."
         main_program()
     elif user_input == "delete":
-        deleteUser(username,password)
+        deleteAccount()
+        main_program()
     elif user_input == "share":
         share_files()
+    elif user_input == "history":
+        get_history()
     else:
         print user_input + " is not a command."
+
+def get_history():
+    global username
+    global password
+    login_info = {'username': username, 'password': password}
+    r = requests.get(server_url + "/get_history", data=login_info)
+    print r.text
+
 
 def share_files():
     files = get_local_file_list(directory)
@@ -321,6 +340,7 @@ def file_List(dict,keyList):
     return keyList
 
 def start_service():
+    global logged_in
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
@@ -335,6 +355,7 @@ def start_service():
     observer.schedule(event_handler, directory, recursive=True)
 
     observer.start()
+    logged_in = True
     print "Service started."
     try:
         check_files()
@@ -352,6 +373,7 @@ def user_login():
     print "Login:"
     global username
     global password
+    global logged_in
     username = raw_input("username: ")
     username_info = {"username": username}
     username_request = requests.post(server_url+"/check_username", data=username_info)
@@ -400,111 +422,28 @@ def admin_login(username, password):
 
     print "Logged in as Admin!"
 
-def deleteFiles_admin():
-    print "Delete a file:"
-    username = raw_input("username: ")
-    username_info = {"username": username}
-    username_request = requests.post(server_url+"/check_username", data=username_info)
+def deleteAccount():
+    global username
+    global password
+    global logged_in
+    confirm = raw_input("Are you sure you want to delete your account? (yes/no): ")
+    print "This will delete all of your files and information from the database."
+    confirm2 = raw_input("ARE YOU ABSOLUTELY SURE? (yes/no): ")
 
-    while username_request.text != "exists":
-        username = raw_input("Username does not exist. Re-enter username: ")
-        username_info = {"username": username}
-        username_request = requests.post(server_url+"/check_username", data=username_info)
-    password = getpass.getpass("password: ")
-
-    delete_info = {'username': username, 'password': password}
-    r = requests.post(server_url+"/login", data=delete_info)
-    #q = requests.post(server_url+"/delete_user", data=delete_info)
-
-    while r.text != "valid":
-        print "Bad password."
-        password = getpass.getpass("Retype password: ")
-        delete_info = {'username': username, 'password': password}
-        r = requests.post(server_url+"/login", data=delete_info)
-        #q = requests.post(server_url+"/delete_user", data=delete_info)
-    info = {'username': username, 'password': password}
-    r = requests.get(server_url +"/request_files", data=info)
-    server_files =  r.json()
-    server_files = unicode_dict_to_string(server_files)
-    sfiles = []
-    sfolders = []
-    flist, sfiles, sfolders, path = file_recurse(server_files, sfiles, sfolders, "")
-
-    for i,f in enumerate(sfiles):
-        sfiles[i] = f.replace(username + "/", "")
-
-    for i,f in enumerate(sfolders):
-        sfolders[i] = f.replace(username + "/", "")
-
-    print sfolders, sfiles
-    file_delete = raw_input("which folder or file do you want to delete from the list above: ")
-    if file_delete in sfiles and file_delete in sfolders:
-        print "Asdf"
-
-    for f in sfiles:
-        # if file on server not on local, remove from server
-        info = {'username': username, 'password': password, 'filepath': f}
-        #r = requests.delete(server_url +"/delete_item", data=info)
-
-    for f in sfolders:
-        # if folder on server not on local, remove from server
-        info = {'username': username, 'password': password, 'filepath': f}
-        #r = requests.delete(server_url +"/delete_item", data=info)
-    #q = requests.post(server_url+"/delete_user", data=delete_info)
-    print "deleted"
-
-def deleteUser(username, password):
-    print "Delete a account:"
-    username = raw_input("username: ")
-    username_info = {"username": username}
-    username_request = requests.post(server_url+"/check_username", data=username_info)
-
-    while username_request.text != "exists":
-        username = raw_input("Username does not exist. Re-enter username: ")
-        username_info = {"username": username}
-        username_request = requests.post(server_url+"/check_username", data=username_info)
-    password = getpass.getpass("password: ")
-
-    delete_info = {'username': username, 'password': password}
-    r = requests.post(server_url+"/login", data=delete_info)
-    #q = requests.post(server_url+"/delete_user", data=delete_info)
-
-    while r.text != "valid":
-        print "Bad password."
-        password = getpass.getpass("Retype password: ")
-        delete_info = {'username': username, 'password': password}
-        r = requests.post(server_url+"/login", data=delete_info)
-        #q = requests.post(server_url+"/delete_user", data=delete_info)
-    info = {'username': username, 'password': password}
-    r = requests.get(server_url +"/request_files", data=info)
-    server_files =  r.json()
-    server_files = unicode_dict_to_string(server_files)
-    sfiles = []
-    sfolders = []
-    path = directory
-    flist, sfiles, sfolders, path = file_recurse(server_files, sfiles, sfolders, "")
-    for i,f in enumerate(sfiles):
-        sfiles[i] = f.replace(username + "/", "")
-
-    for i,f in enumerate(sfolders):
-        sfolders[i] = f.replace(username + "/", "")
-    for f in sfiles:
-        # if file on server not on local, remove from server
-        info = {'username': username, 'password': password, 'filepath': f}
-        r = requests.delete(server_url +"/delete_item", data=info)
-
-    for f in sfolders:
-        # if folder on server not on local, remove from server
-        info = {'username': username, 'password': password, 'filepath': f}
-        r = requests.delete(server_url +"/delete_item", data=info)
-    q = requests.post(server_url+"/delete_user", data=delete_info)
-    print "deleted"
+    if confirm == "yes" and confirm2 == "yes":
+        login_info = {'username': username, 'password': password}
+        r = requests.delete(server_url+"/delete_user", data=login_info)
+        username = ""
+        password = ""
+        logged_in = False
+        
 
 def main_program():
     global username
-    print "Enter 'login' to login, or 'sign up' to create a new account, or 'delete' to delete your account"
+    global password
+    print "Enter 'login' to login, or 'sign up' to create a new account"
 
-    valid_inputs = ["login", "signup", "sign up", "admin login", "delete"]
+    valid_inputs = ["login", "signup", "sign up", "admin login"]
 
 
     command = raw_input("")
@@ -516,22 +455,6 @@ def main_program():
 
     elif command.lower() == "admin login":
         admin_login(username, password)
-        print "Enter 'delete' to delete a user"
-
-        valid_inputs_admin = ["delete"]
-
-        input_admin = raw_input("")
-        while (input_admin.lower() not in valid_inputs_admin):
-            input_admin = raw_input("")
-
-        if input_admin.lower() == "delete":
-            deleteUser(username,password)
-
-    elif command.lower() == "delete":
-        deleteUser(username,password)
-
-        info = {'username': username, 'password': password}
-        r = requests.get(server_url +"/request_files", data=info)
 
     elif command.lower() == "sign up" or command.lower() == "signup":
         print "Sign up for OneDir!"
