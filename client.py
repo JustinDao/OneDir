@@ -18,7 +18,6 @@ from watchdog.events import FileCreatedEvent
 from datetime import datetime
 import sqlite3
 
-
 requests_log = logging.getLogger("requests")
 requests_log.setLevel(logging.WARNING)
 
@@ -411,9 +410,11 @@ def user_login():
 
     start_service()
 
-def admin_login(username, password):
+def admin_login():
+    global username
+    global password
     print "Login:"
-    username = raw_input("username: ")
+    username = raw_input("Admin username: ")
     username_info = {"username": username}
 
     username_request = requests.post(server_url+"/check_admin", data=username_info)
@@ -423,7 +424,7 @@ def admin_login(username, password):
         username_info = {"username": username}
         username_request = requests.post(server_url+"/check_admin", data=username_info)
 
-    password = getpass.getpass("password: ")
+    password = getpass.getpass("Admin password: ")
 
     login_info = {'username': username, 'password': password}
     r = requests.post(server_url+"/admin_login", data=login_info)
@@ -434,7 +435,48 @@ def admin_login(username, password):
         login_info = {'username': username, 'password': password}
         r = requests.post(server_url+"/admin_login", data=login_info)
 
-    print "Logged in as Admin!"
+    start_admin()
+
+def start_admin():
+    while True:
+        admin_input = raw_input("Admin Command: ")
+        admin_command(admin_input)
+
+
+def admin_command(admin_input):
+    global username
+    global password
+    if admin_input.lower() == "get":
+        admin_info = {'username': username, 'password' : password}
+        r = requests.post(server_url + "/get_user_data", data=admin_info)
+        a = unicode_dict_to_string(r.json())
+        print a["info"]
+
+    elif admin_input.lower() == "change":
+        username = raw_input("Enter a username: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+        if username_request.text == "exists":
+            old_password = getpass.getpass("current password: ")
+            login_info = {'username': username, 'password': old_password}
+            r = requests.post(server_url+"/login", data=login_info)
+            while (r.text != "valid"):
+                print "Bad password."
+                old_password = getpass.getpass("current password: ")
+                login_info = {'username': username, 'password': old_password}
+                r = requests.post(server_url+"/login", data=login_info)
+            new_password = getpass.getpass("New password: ")
+            password_confirmation = getpass.getpass("Confirm your password: ")
+            while (new_password != password_confirmation):
+                print "Passwords did not match."
+                new_password = getpass.getpass("Re-enter your password: ")
+                password_confirmation = getpass.getpass("Confirm your password: ")
+        conn = sqlite3.connect('server.db')
+        result = []
+        with conn:
+            cur = conn.cursor()
+            sql_cmd = "update users set password=? where username=?"
+            cur.execute(sql_cmd, (new_password, username))
 
 def deleteAccount():
     global username
@@ -468,7 +510,7 @@ def main_program():
         user_login()
 
     elif command.lower() == "admin login":
-        admin_login(username, password)
+        admin_login()
 
     elif command.lower() == "sign up" or command.lower() == "signup":
         print "Sign up for OneDir!"
@@ -497,46 +539,6 @@ def main_program():
         create_user_request = requests.post(server_url+"/create_user", data=create_user_info)
 
         start_service()
-
-    elif command.lower() == "get":
-        conn = sqlite3.connect('server.db')
-        result = []
-        with conn:
-            cur = conn.cursor()
-            sql_cmd = "select * from users"
-            cur.execute(sql_cmd)
-            while True:
-                page_row = cur.fetchone()
-                if page_row is None:
-                    break
-                else:
-                    print page_row
-
-    elif command.lower() == "change":
-        username = raw_input("Enter a username: ")
-        username_info = {"username": username}
-        username_request = requests.post(server_url+"/check_username", data=username_info)
-        if username_request.text == "exists":
-            old_password = getpass.getpass("current password: ")
-            login_info = {'username': username, 'password': old_password}
-            r = requests.post(server_url+"/login", data=login_info)
-            while (r.text != "valid"):
-                print "Bad password."
-                old_password = getpass.getpass("current password: ")
-                login_info = {'username': username, 'password': old_password}
-                r = requests.post(server_url+"/login", data=login_info)
-            new_password = getpass.getpass("New password: ")
-            password_confirmation = getpass.getpass("Confirm your password: ")
-            while (new_password != password_confirmation):
-                print "Passwords did not match."
-                new_password = getpass.getpass("Re-enter your password: ")
-                password_confirmation = getpass.getpass("Confirm your password: ")
-        conn = sqlite3.connect('server.db')
-        result = []
-        with conn:
-            cur = conn.cursor()
-            sql_cmd = "update users set password=? where username=?"
-            cur.execute(sql_cmd, (new_password, username))
 
 if __name__ == "__main__":
     main_program()

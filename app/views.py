@@ -31,6 +31,27 @@ def admin_login():
   else:
     return "invalid"
 
+@app.route('/get_user_data', methods=['POST'])
+def get_user_data():
+  if valid_admin_login(request.form['username'], request.form['password']):
+    conn = sqlite3.connect('server.db')
+    result = []
+
+    with conn:
+      cur = conn.cursor()
+      sql_cmd = "select * from users"
+      cur.execute(sql_cmd)
+      while True:
+          page_row = cur.fetchone()
+          if page_row is None:
+              break
+          else:
+              result.append(page_row)
+      return json.jsonify({"info": result})
+
+  else:
+    return "invalid"
+
 
 @app.route('/check_username', methods=['POST'])
 def check_username_request():
