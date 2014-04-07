@@ -192,7 +192,6 @@ def check_files():
 
     s, sfiles, sfolders, spath = file_recurse(server_files, sfiles, sfolders, "")
     l, lfiles, lfolders, lpath = file_recurse(local_files, lfiles, lfolders, "")
-    print sfiles, sfolders
     for i,f in enumerate(sfiles):
         sfiles[i] = f.replace(username + "/", "")
 
@@ -204,8 +203,6 @@ def check_files():
 
     for i,f in enumerate(lfolders):
         lfolders[i] = f.replace("onedir/", "")
-    print sfiles, sfolders
-    print ""
     for f in sfiles:
         if f not in lfiles:
             # if file on server not on local, remove from server
@@ -236,7 +233,6 @@ def check_files():
             file_data = {'file': open(directory + f, 'rb')}
             info = {'username': username, 'password': password, 'filepath': f}
             r = requests.post(server_url +"/create_file", data=info, files=file_data)
-   
 
 def folder_listener(handler, observer):
     while True:
@@ -256,7 +252,7 @@ def user_command(user_input):
         username = ""
         password = ""
         print "You have been logged out."
-        main_program() 
+        main_program()
     elif user_input == "delete":
         deleteUser(username,password)
     elif user_input == "share":
@@ -295,29 +291,23 @@ def share_files():
         del send_dict[i]
     a, sfiles, sfolders, spath = file_recurse(send_dict,sfiles, sfolders,"")
     print sfiles, sfolders
-    for i,f in enumerate(sfiles):
-        sfiles[i] = f.replace(username + "/", "")
-    for i,f in enumerate(sfolders):
-        sfolders[i] = f.replace(username + "/", "")
-    print sfiles, sfolders
     filepath = input + "/"
     info = {'username': input2, 'dirpath': filepath}
-    sfolders.remove(filepath)
     for f in sfolders:
-        print f
         info = {'username': input2, 'dirpath': f}
         r = requests.post(server_url +"/create_dir2", data=info)
 
     for f in sfiles:
-        directory12 = "/home/" + main_username + "/"
-        file_data = {'file': open(directory12 + input2  + "/" + f, 'rb')}
+        directory1 = "/home/" + main_username + "/onedir/"
+        file_data = {'file': open(directory1  + f , 'rb')}
         info = {'username': input2, 'filepath': f}
         r = requests.post(server_url +"/create_file2", data=info, files=file_data)
 
     for filename in sfiles:
         info1 = {'username': input2}
+        directory1 = "/home/" + main_username + "/onedir/"
         r = requests.get(server_url +"/get_file2/" + filename, data=info1)
-        f = open(directory + username  + "/" + filename, "w+")
+        f = open(directory1 + filename, "w+")
         f.write(r.content)
 
 def file_List(dict,keyList):
@@ -333,14 +323,13 @@ def file_List(dict,keyList):
 def start_service():
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')    
+                        datefmt='%Y-%m-%d %H:%M:%S')
 
     if not os.path.exists(directory):
         restore_onedir_folder(username, password)
 
     event_handler = OneDirHandler()
     # logging_handler = LoggingEventHandler()
-    
     observer = Observer()
     # observer.schedule(logging_handler, directory, recursive=True)
     observer.schedule(event_handler, directory, recursive=True)
@@ -513,7 +502,6 @@ def deleteUser(username, password):
 
 def main_program():
     global username
-    global password
     print "Enter 'login' to login, or 'sign up' to create a new account, or 'delete' to delete your account"
 
     valid_inputs = ["login", "signup", "sign up", "admin login", "delete"]
