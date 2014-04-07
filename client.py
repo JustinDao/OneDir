@@ -18,6 +18,10 @@ from watchdog.events import FileCreatedEvent
 from datetime import datetime
 import sqlite3
 
+
+requests_log = logging.getLogger("requests")
+requests_log.setLevel(logging.WARNING)
+
 server_url = "http://localhost:5000"
 
 username = ""
@@ -268,6 +272,8 @@ def user_command(user_input):
         share_files()
     elif user_input == "history":
         get_history()
+    elif user_input.split(" ")[0] == "history":
+        store_history(user_input.split(" ")[1])
     else:
         print user_input + " is not a command."
 
@@ -277,6 +283,14 @@ def get_history():
     login_info = {'username': username, 'password': password}
     r = requests.get(server_url + "/get_history", data=login_info)
     print r.text
+
+def store_history(filename):
+    global username
+    global password
+    with open(directory + filename, "w") as f:
+        login_info = {'username': username, 'password': password}
+        r = requests.get(server_url + "/get_history", data=login_info)
+        f.write(r.text)
 
 
 def share_files():
