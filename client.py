@@ -268,9 +268,9 @@ def start_service():
     observer.join()
 
 if __name__ == "__main__":
-    print "Enter 'login' to login, or 'sign up' to create a new account:"
+    print "Enter 'login' to login, 'change password' to update your account password, or 'sign up' to create a new account:"
 
-    valid_inputs = ["login", "signup", "sign up"]
+    valid_inputs = ["login", "signup", "sign up", "change password"]
 
     command = raw_input("")
     while(command.lower() not in valid_inputs):
@@ -322,5 +322,43 @@ if __name__ == "__main__":
         create_user_info = {'username': username, 'password': password}
 
         create_user_request = requests.post(server_url+"/create_user", data=create_user_info)
+
+        start_service()
+
+    elif command.lower() == "change password":
+
+        username = raw_input("Enter a username: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+
+        while username_request.text != "exists":
+            username = raw_input("Username does not exist. Re-enter username: ")
+            username_info = {"username": username}
+            username_request = requests.post(server_url+"/check_username", data=username_info)
+
+        password = getpass.getpass("password: ")
+
+        login_info = {'username': username, 'password': password}
+        r = requests.post(server_url+"/login", data=login_info)
+
+        while (r.text != "valid"):
+            print "Bad password."
+            password = getpass.getpass("Invalid Password, Please Retype Password: ")
+            login_info = {'username': username, 'password': password}
+            r = requests.post(server_url+"/login", data=login_info)
+
+        newpassword = getpass.getpass("Enter a new password: ")
+        newpassword_confirmation = getpass.getpass("Confirm your new password: ")
+
+        while (newpassword != newpassword_confirmation):
+            print "Passwords did not match."
+            newpassword = getpass.getpass("Re-enter your password: ")
+            newpassword_confirmation = getpass.getpass("Confirm your password: ")
+
+
+        create_user_info = {'username': username,'newpass': newpassword}
+
+        create_user_request = requests.post(server_url+"/update_password", data=create_user_info)
+
 
         start_service()
