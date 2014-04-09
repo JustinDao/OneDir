@@ -375,6 +375,13 @@ def store_history(filename):
         r = requests.get(server_url + "/get_history", data=login_info)
         f.write(r.text)
 
+def find_path(list,folder_path):
+    for i in list:
+        if i == '/':
+            folder_path += '/'
+            return folder_path
+        else:
+            folder_path += i
 
 def share_files():
     files = get_local_file_list(directory)
@@ -397,34 +404,88 @@ def share_files():
                 username_request = requests.post(server_url+"/check_username", data=username_info)
             break
         print "you cannot send it to yourself. Re-enter username."
+
     sfiles = []
     sfolders = []
+    rfiles = []
+    rfolders = []
     validlist = []
-    for i in send_dict:
-        if i != input:
-            validlist.append(i)
-    for i in validlist:
-        del send_dict[i]
-    a, sfiles, sfolders, spath = file_recurse(send_dict,sfiles, sfolders,"")
-    print sfiles, sfolders
-    filepath = input + "/"
-    info = {'username': input2, 'dirpath': filepath}
-    for f in sfolders:
-        info = {'username': input2, 'dirpath': f}
-        r = requests.post(server_url +"/create_dir2", data=info)
+    rpath = ""
+    spath = ""
+    if send_dict[input] != None:
+        for i in send_dict:
+            if i != input:
+                validlist.append(i)
+        for i in validlist:
+            del send_dict[i]
+        a, sfiles, sfolders, spath = file_recurse(send_dict,sfiles, sfolders,spath)
+        for f in sfolders:
+            info = {'username': input2, 'dirpath': f}
+            r = requests.post(server_url +"/create_dir2", data=info)
 
-    for f in sfiles:
-        directory1 = "/home/" + main_username + "/onedir/"
-        file_data = {'file': open(directory1  + f , 'rb')}
-        info = {'username': input2, 'filepath': f}
-        r = requests.post(server_url +"/create_file2", data=info, files=file_data)
+        for f in sfiles:
+            directory1 = "/home/" + main_username + "/onedir/"
+            file_data = {'file': open(directory1 + f, 'rb')}
+            info = {'username': input2, 'filepath': f}
+            r = requests.post(server_url +"/create_file2", data=info, files=file_data)
 
-    for filename in sfiles:
-        info1 = {'username': input2}
-        directory1 = "/home/" + main_username + "/onedir/"
-        r = requests.get(server_url +"/get_file2/" + filename, data=info1)
-        f = open(directory1 + filename, "w+")
-        f.write(r.content)
+        for filename in sfiles:
+            info1 = {'username': input2}
+            directory1 = "/home/" + main_username + "/onedir/"
+            r = requests.get(server_url +"/get_file2/" + filename, data=info1)
+            f = open(directory1 + filename, "w+")
+            f.write(r.content)
+    else:
+        a, rfiles, rfolders, rpath = file_recurse(files,rfiles, rfolders,rpath)
+        newFiles = []
+        for i in rfiles:
+            s = list(i)
+            aa = s.__len__()-4
+            if i[aa:] == input:
+                newFiles.append(i)
+        for i,f in enumerate(newFiles):
+            newFiles[i] = f.replace("onedir/","")
+        zz = list(newFiles[0])
+        folder_path = ""
+        path2 = []
+        while(True):
+            qq = find_path(zz,folder_path)
+            qwer= list(input)
+            if zz == qwer:
+                path2.append(input+'/')
+                break
+            path2.append(qq)
+            ww = list(qq)
+            for i in ww:
+                zz.remove(i)
+        path3 = []
+        tfile = []
+        temp = ""
+        for i in path2:
+            temp += i
+            path3.append(temp)
+        tfile.append(path3[path3.__len__()-1])
+        path3.remove(path3[path3.__len__()-1])
+
+        for f in path3:
+            f = f[:-1]
+            info = {'username': input2, 'dirpath': f}
+            r = requests.post(server_url +"/create_dir2", data=info)
+
+        for f in tfile:
+            f = f[:-1]
+            directory1 = "/home/" + main_username + "/onedir/"
+            file_data = {'file': open(directory1 + f, 'rb')}
+            info = {'username': input2, 'filepath': f}
+            r = requests.post(server_url +"/create_file2", data=info, files=file_data)
+
+        for filename in tfile:
+            filename = filename[:-1]
+            info1 = {'username': input2}
+            directory1 = "/home/" + main_username + "/onedir/"
+            r = requests.get(server_url +"/get_file2/" + filename, data=info1)
+            f = open(directory1 + filename, "w+")
+            f.write(r.content)
 
 def file_List(dict,keyList):
     if dict is not None:

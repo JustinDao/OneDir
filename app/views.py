@@ -112,7 +112,7 @@ def create_file_request2():
     filepath = main_path + request.form['filepath']
     f = request.files['file']
     f.save(filepath)
-
+    log (username, "Created File", filepath)
     return "File created"
   return "Failed to create file."
 
