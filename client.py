@@ -175,8 +175,9 @@ def restore_onedir_folder(username, password):
 
     for filename in files:
         r = requests.get(server_url +"/get_file/" + filename, data=info)
-        f = open(directory + filename, "w+")
-        f.write(r.content)
+
+        with open(directory + filename, "w+") as f:
+            f.write(r.content)
 
 
 def check_files():
@@ -253,6 +254,72 @@ def folder_listener(handler, observer):
             observer = Observer()
             observer.schedule(handler, directory, recursive=True)
             observer.start()
+        else:
+            request_files()
+
+def request_files():
+    info = {'username': username, 'password': password}
+    r = requests.get(server_url +"/request_files", data=info)
+    server_files =  r.json()
+
+    server_files = unicode_dict_to_string(server_files)
+    local_files = get_local_file_list(directory)
+
+    sfiles = []
+    sfolders = []
+    lfiles = []
+    lfolders = []
+
+    s, sfiles, sfolders, spath = file_recurse(server_files, sfiles, sfolders, "")
+    l, lfiles, lfolders, lpath = file_recurse(local_files, lfiles, lfolders, "")
+    for i,f in enumerate(sfiles):
+        sfiles[i] = f.replace(username + "/", "")
+
+    for i,f in enumerate(sfolders):
+        sfolders[i] = f.replace(username + "/", "")
+
+    for i,f in enumerate(lfiles):
+        lfiles[i] = f.replace("onedir/", "")
+
+    for i,f in enumerate(lfolders):
+        lfolders[i] = f.replace("onedir/", "")
+
+    for f in sfolders:
+        if f not in lfolders:
+            # if folder on server not on local, add to local
+            #TODO PAUSE SYNCING
+            os.makedirs(directory + f)
+            #TODO UNPAUSE SYNCING
+
+    for f in sfiles:
+        if f not in lfiles:
+            # if file on server not on local, add to local
+            info = {'username': username, 'password': password, 'filepath': f}
+            r = requests.get(server_url +"/get_file", data=info)
+
+            with open(directory + f, "w+") as f:
+              f.write(r.content)
+
+    l, lfiles, lfolders, lpath = file_recurse(local_files, lfiles, lfolders, "")
+    for i,f in enumerate(lfiles):
+        lfiles[i] = f.replace("onedir/", "")
+
+    for i,f in enumerate(lfolders):
+        lfolders[i] = f.replace("onedir/", "")
+
+    for f in lfiles:
+        if f not in sfiles:
+            # if file was renamed remove old local file. 
+            #TODO PAUSE SYNCING
+            try:
+                os.remove(directory + f)
+            except OSError:
+                print "File already removed."
+            #TODO UNPAUSE SYNCING
+
+    #TODO RENAMING FOLDERS ON SERVER
+    #TODO: Check for updated files on server
+
 
 def user_command(user_input):
     global username
@@ -376,7 +443,6 @@ def start_service():
         while True:
             user_input = raw_input("Command: ")
             user_command(user_input)
-            # request_files()
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
@@ -541,4 +607,7 @@ def main_program():
         start_service()
 
 if __name__ == "__main__":
-    main_program()
+    try:
+        main_program()
+    except requests.exceptions.ConnectionError:
+        print "Not connected to server."
