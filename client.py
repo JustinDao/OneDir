@@ -620,6 +620,18 @@ def admin_command(admin_input):
             sql_cmd = "update users set password=? where username=?"
             cur.execute(sql_cmd, (new_password, username))
 
+    elif admin_input.lower() == "user data":
+        username = raw_input("Enter a username: ")
+        username_info = {"username": username}
+        username_request = requests.post(server_url+"/check_username", data=username_info)
+        if username_request.text == "exists":
+            dir_start = "/home/" + username + "/onedir/"
+            for dir_path, dir_name, file_name in os.walk(dir_start):
+            for f in file_name:
+                fp = os.path.join(dir_path, f)
+                fs = os.path.getsize(fp)
+                print f, "-", fs, "bytes"
+
 def deleteAccount():
     global username
     global password
