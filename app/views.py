@@ -74,8 +74,16 @@ def create_user_request():
 
 @app.route('/update_password', methods=['POST'])
 def create_update_request():
-  if user_exists(request.form['username']):
-    update_password(request.form['username'], request.form['newpass']) 
+  if valid_login(request.form['username'], request.form['old_password']):
+    update_password(request.form['username'], request.form['new_password']) 
+    return "Password Updated"
+  else:
+    return "Update Failed"
+
+@app.route('/admin_update_password', methods=['POST'])
+def admin_update_password():
+  if valid_admin_login(request.form['admin_name'], request.form['admin_pw']):
+    update_password(request.form['username'], request.form['new_password']) 
     return "Password Updated"
   else:
     return "Update Failed"
@@ -289,6 +297,22 @@ def delete_user_request():
 
   return "Failed"
 
+@app.route('/admin_delete_user', methods=['DELETE'])
+def admin_delete_user_request():
+  admin_name = request.form['admin_name']
+
+  if valid_admin_login(admin_name, request.form['admin_pw']):
+    username = request.form['username']
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username
+
+    shutil.rmtree(main_path)
+
+    admin_remove_user(username)
+    print "Deleted"
+
+  return "Failed"
+
 @app.route('/get_history', methods=['GET'])
 def get_history_request():
   username = request.form['username']
@@ -398,6 +422,14 @@ def remove_user_from_database(username, password):
     cursor = connection.cursor()
     info = (username, password)
     cursor.execute("DELETE FROM users WHERE username = ? and password = ?", info)
+    connection.commit()
+    connection.close()
+
+def admin_remove_user(username):
+    connection = sqlite3.connect('server.db')
+    cursor = connection.cursor()
+    info = (username,)
+    cursor.execute("DELETE FROM users WHERE username = ?", info)
     connection.commit()
     connection.close()
 

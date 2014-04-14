@@ -346,6 +346,7 @@ def user_command(user_input):
         print user_input + " is not a command."
 
 def change_password():
+    global username
     global password
     new_password = getpass.getpass("Enter a new password: ")
     new_password_confirmation = getpass.getpass("Confirm your new password: ")
@@ -355,10 +356,13 @@ def change_password():
         new_password = getpass.getpass("Re-enter your new password: ")
         new_password_confirmation = getpass.getpass("Confirm your new password: ")
 
-    create_user_info = {'username': username,'newpass': new_password}
-    create_user_request = requests.post(server_url+"/update_password", data=create_user_info)
+    update_user_info = {'username': username, 'old_password': password, 'new_password': new_password}
+    update_user_request = requests.post(server_url+"/update_password", data=update_user_info)
 
-    password = new_password
+    if update_user_request.text == "Password Updated":
+        password = new_password
+    else:
+        print "failed"
 
 def get_history():
     global username
@@ -586,8 +590,6 @@ def start_admin():
 
 
 def admin_command(admin_input):
-    global username
-    global password
     if admin_input.lower() == "get":
         admin_info = {'username': username, 'password' : password}
         r = requests.post(server_url + "/get_user_data", data=admin_info)
@@ -595,30 +597,52 @@ def admin_command(admin_input):
         print a["info"]
 
     elif admin_input.lower() == "change":
-        username = raw_input("Enter a username: ")
-        username_info = {"username": username}
-        username_request = requests.post(server_url+"/check_username", data=username_info)
-        if username_request.text == "exists":
-            old_password = getpass.getpass("current password: ")
-            login_info = {'username': username, 'password': old_password}
-            r = requests.post(server_url+"/login", data=login_info)
-            while (r.text != "valid"):
-                print "Bad password."
-                old_password = getpass.getpass("current password: ")
-                login_info = {'username': username, 'password': old_password}
-                r = requests.post(server_url+"/login", data=login_info)
-            new_password = getpass.getpass("New password: ")
-            password_confirmation = getpass.getpass("Confirm your password: ")
-            while (new_password != password_confirmation):
-                print "Passwords did not match."
-                new_password = getpass.getpass("Re-enter your password: ")
-                password_confirmation = getpass.getpass("Confirm your password: ")
-        conn = sqlite3.connect('server.db')
-        result = []
-        with conn:
-            cur = conn.cursor()
-            sql_cmd = "update users set password=? where username=?"
-            cur.execute(sql_cmd, (new_password, username))
+        admin_change_password()
+    elif admin_input.lower() == "remove user":
+        admin_remove_user()
+
+def admin_remove_user():
+    global username
+    global password
+    global logged_in
+
+    uname = raw_input("Enter a username: ")
+    uname_info = {"username": uname}
+    uname_request = requests.post(server_url+"/check_username", data=uname_info)
+
+    if uname_request.text == "exists":
+
+        confirm = raw_input("Are you sure you want to delete your account? (yes/no): ")
+        print "This will delete all of your files and information from the database."
+        confirm2 = raw_input("ARE YOU ABSOLUTELY SURE? (yes/no): ")
+
+        if confirm == "yes" and confirm2 == "yes":
+            login_info = {'admin_name': username, 'admin_pw': password, 'username': uname}
+            r = requests.delete(server_url+"/admin_delete_user", data=login_info)
+
+    else:
+        print "User does not exist"
+
+def admin_change_password():
+    global username
+    global password
+    uname = raw_input("Enter a username: ")
+    uname_info = {"username": uname}
+    uname_request = requests.post(server_url+"/check_username", data=uname_info)
+
+    if uname_request.text == "exists":
+        new_password = getpass.getpass("User's new password: ")
+        password_confirmation = getpass.getpass("Confirm new password: ")
+        while (new_password != password_confirmation):
+            print "Passwords did not match."
+            new_password = getpass.getpass("Re-enter new password: ")
+            password_confirmation = getpass.getpass("Confirm new password: ")
+
+        update_user_info = {'admin_name': username, 'admin_pw': password, 'username': uname, 'new_password': new_password}
+        update_user_request = requests.post(server_url+"/admin_update_password", data=update_user_info)
+
+    else:
+        print "User does not exist"
 
 def deleteAccount():
     global username
