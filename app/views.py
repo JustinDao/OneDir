@@ -72,6 +72,14 @@ def create_user_request():
   create_user(request.form['username'], request.form['password'])
   return "User created"
 
+@app.route('/update_password', methods=['POST'])
+def create_update_request():
+  if user_exists(request.form['username']):
+    update_password(request.form['username'], request.form['newpass']) 
+    return "Password Updated"
+  else:
+    return "Update Failed"
+
 @app.route('/create_file', methods=['POST'])
 def create_file_request():
   username = request.form['username']
@@ -400,3 +408,11 @@ def log(username, event_type, path, dest=None):
     if dest is not None:
       dest_path = " to " + dest
     f.write(time + " " + event_type + ": "  + path + dest_path + "\n")
+
+def update_password(username, newpass):
+  connection = sqlite3.connect('server.db')
+  cursor = connection.cursor()
+
+  cursor.execute("UPDATE users SET password='" + newpass + "'WHERE username=?", (username,) )
+  connection.commit()
+  connection.close()

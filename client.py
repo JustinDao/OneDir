@@ -340,8 +340,25 @@ def user_command(user_input):
         get_history()
     elif user_input.split(" ")[0] == "history":
         store_history(user_input.split(" ")[1])
+    elif user_input == "change password":
+        change_password()
     else:
         print user_input + " is not a command."
+
+def change_password():
+    global password
+    new_password = getpass.getpass("Enter a new password: ")
+    new_password_confirmation = getpass.getpass("Confirm your new password: ")
+
+    while (new_password != new_password_confirmation):
+        print "Passwords did not match."
+        new_password = getpass.getpass("Re-enter your new password: ")
+        new_password_confirmation = getpass.getpass("Confirm your new password: ")
+
+    create_user_info = {'username': username,'newpass': new_password}
+    create_user_request = requests.post(server_url+"/update_password", data=create_user_info)
+
+    password = new_password
 
 def get_history():
     global username
@@ -447,7 +464,6 @@ def start_service():
         observer.stop()
     observer.join()
 
-
 def user_login():
     print "Login:"
     global username
@@ -456,7 +472,6 @@ def user_login():
     username = raw_input("username: ")
     username_info = {"username": username}
     username_request = requests.post(server_url+"/check_username", data=username_info)
-
 
     while username_request.text != "exists":
         username = raw_input("Username does not exist. Re-enter username: ")
@@ -611,3 +626,4 @@ if __name__ == "__main__":
         main_program()
     except requests.exceptions.ConnectionError:
         print "Not connected to server."
+
