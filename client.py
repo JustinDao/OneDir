@@ -10,6 +10,7 @@ import getpass
 import collections
 import thread
 import re
+import shutil
 from Queue import Queue
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
@@ -62,7 +63,7 @@ class OneDirHandler(FileSystemEventHandler):
         updated_at = str(datetime.now())
 
     def on_created(self, event):
-        print "Created " + event.src_path
+        # print "Created " + event.src_path
 
         if os.path.isfile(event.src_path):
             filepath = event.src_path.replace(directory, "")
@@ -80,7 +81,7 @@ class OneDirHandler(FileSystemEventHandler):
         
     
     def on_deleted(self, event):
-        print "Deleted " + event.src_path
+        # print "Deleted " + event.src_path
 
         #handles file vs. dir on server
 
@@ -92,7 +93,7 @@ class OneDirHandler(FileSystemEventHandler):
 
 
     def on_modified(self, event):
-        print "Modified " + event.src_path
+        # print "Modified " + event.src_path
 
         #Should never encounter this with a directory
         #but weird stuff happens when moved outside watchdog directory
@@ -110,7 +111,7 @@ class OneDirHandler(FileSystemEventHandler):
 
     def on_moved(self, event):
         if event.src_path is not None:
-            print "Moved " + event.src_path + " to " + event.dest_path
+            # print "Moved " + event.src_path + " to " + event.dest_path
 
             #handles file vs. dir on server
             
@@ -281,6 +282,10 @@ def folder_listener(handler):
                 request_files()
 
 def request_files():
+    global username
+    global password
+    global observer
+    observer.stop_listening()
     info = {'username': username, 'password': password}
     r = requests.get(server_url +"/request_files", data=info)
     server_files =  r.json()
@@ -307,21 +312,30 @@ def request_files():
     for i,f in enumerate(lfolders):
         lfolders[i] = f.replace("onedir/", "")
 
+    # compare local files to its mirror on the server
+    for f in lfiles:
+        file_data = {'file': open(directory + f, 'rb')}
+        info = {'username': username, 'password': password, 'filepath': f}
+        r = requests.post(server_url +"/check_file", data=info, files=file_data)
+        if r.text == "False":
+            
+            data = requests.get(server_url +"/get_file/" + f, data=info)
+            with open(directory + f, "w+") as fi:
+                fi.write(data.content)
+
     for f in sfolders:
         if f not in lfolders:
             # if folder on server not on local, add to local
-            #TODO PAUSE SYNCING
             os.makedirs(directory + f)
-            #TODO UNPAUSE SYNCING
 
     for f in sfiles:
         if f not in lfiles:
             # if file on server not on local, add to local
             info = {'username': username, 'password': password, 'filepath': f}
-            r = requests.get(server_url +"/get_file", data=info)
+            r = requests.get(server_url +"/get_file/" + f, data=info)
 
-            with open(directory + f, "w+") as f:
-              f.write(r.content)
+            with open(directory + f, "w+") as fi:
+              fi.write(r.content) 
 
     l, lfiles, lfolders, lpath = file_recurse(local_files, lfiles, lfolders, "")
     for i,f in enumerate(lfiles):
@@ -330,18 +344,27 @@ def request_files():
     for i,f in enumerate(lfolders):
         lfolders[i] = f.replace("onedir/", "")
 
+    for f in lfolders:
+        if f not in sfolders:
+            # if folder still on local after getting server files, remove it
+            # fixes folder renames
+            try:
+                shutil.rmtree(directory + f)
+            except OSError:
+                pass
+
     for f in lfiles:
         if f not in sfiles:
             # if file was renamed remove old local file. 
-            #TODO PAUSE SYNCING
             try:
                 os.remove(directory + f)
             except OSError:
-                print "File already removed."
-            #TODO UNPAUSE SYNCING
+                pass
 
-    #TODO RENAMING FOLDERS ON SERVER
-    #TODO: Check for updated files on server
+    observer.start_listening()
+
+    # #TODO RENAMING FOLDERS ON SERVER
+    # #TODO: Check for updated files on server
 
 
 def user_command(user_input):

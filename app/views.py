@@ -340,6 +340,28 @@ def get_file2(filename):
 
   return "Failed"
 
+@app.route('/check_file', methods=['POST'])
+def check_file_request():
+  username = request.form['username']
+  if valid_login(username, request.form['password']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + username + "/"
+
+    filepath = main_path + request.form['filepath']
+
+    if os.path.isfile(filepath):
+      with open(filepath, 'r') as f1:
+        f2 = request.files['file']
+        if f1.read() == f2.read():
+          return "True"
+        else:
+          return "False"
+
+    else:
+      return "False"
+  else:
+    return "False"
+
 def valid_login(username, password):
   connection = sqlite3.connect('server.db')
   cursor = connection.cursor()
