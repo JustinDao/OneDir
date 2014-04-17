@@ -18,6 +18,25 @@ from watchdog.events import FileCreatedEvent
 from datetime import datetime
 import sqlite3
 
+class OneDirObserver(Observer):
+    def __init__(self, *args):
+        self.listening = True
+        super(OneDirObserver, self).__init__(*args)
+
+    def start_listening(self):
+        self.listening = True
+
+    def stop_listening(self):
+        self.listening = False
+
+    def dispatch_events(self, event_queue, timeout):
+        if self.listening:
+            super(OneDirObserver, self).dispatch_events(event_queue, timeout)
+        else:
+            # eats up event to ignore it
+            event, watch = event_queue.get(block=True, timeout=timeout)
+
+
 requests_log = logging.getLogger("requests")
 requests_log.setLevel(logging.WARNING)
 
@@ -28,6 +47,8 @@ password = ""
 logged_in = False
 
 updated_at = str(datetime.now())
+
+observer = OneDirObserver()
 
 def get_username():
     return pwd.getpwuid(os.getuid()).pw_name
@@ -239,10 +260,11 @@ def check_files():
             info = {'username': username, 'password': password, 'filepath': f}
             r = requests.post(server_url +"/create_file", data=info, files=file_data)
 
-def folder_listener(handler, observer):
+def folder_listener(handler):
     global username
     global password
     global logged_in
+    global observer
     while True:
         time.sleep(1)
         if not logged_in:
@@ -251,11 +273,12 @@ def folder_listener(handler, observer):
             observer.stop()
             observer.join()
             restore_onedir_folder(username, password)
-            observer = Observer()
+            observer = OneDirObserver()
             observer.schedule(handler, directory, recursive=True)
             observer.start()
         else:
-            request_files()
+            if observer.listening:
+                request_files()
 
 def request_files():
     info = {'username': username, 'password': password}
@@ -325,6 +348,7 @@ def user_command(user_input):
     global username
     global password
     global logged_in
+    global observer
     if user_input == "logout":
         username = ""
         password = ""
@@ -342,6 +366,10 @@ def user_command(user_input):
         store_history(user_input.split(" ")[1])
     elif user_input == "change password":
         change_password()
+    elif user_input == "pause":
+        observer.stop_listening()
+    elif user_input == "unpause":
+        observer.start_listening()
     else:
         print user_input + " is not a command."
 
@@ -503,6 +531,7 @@ def file_List(dict,keyList):
 
 def start_service():
     global logged_in
+    global observer
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
@@ -512,7 +541,6 @@ def start_service():
 
     event_handler = OneDirHandler()
     # logging_handler = LoggingEventHandler()
-    observer = Observer()
     # observer.schedule(logging_handler, directory, recursive=True)
     observer.schedule(event_handler, directory, recursive=True)
 
@@ -521,7 +549,7 @@ def start_service():
     print "Service started."
     try:
         check_files()
-        thread.start_new_thread ( folder_listener, (event_handler, observer) )
+        thread.start_new_thread ( folder_listener, (event_handler,) )
         while True:
             user_input = raw_input("Command: ")
             user_command(user_input)
