@@ -396,6 +396,24 @@ def get_user_history_request():
     return content
   else:
     return "Failed"
+
+@app.route('/log_stop', methods=['POST'])
+def log_stop():
+  if valid_login(request.form['username'], request.form['password']):
+    with open(request.form['username'] + ".log", "a") as f:
+      time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+      f.write(time + " Synchronization paused\n")
+  else:
+    return "Failed"
+
+@app.route('/log_start', methods=['POST'])
+def log_start():
+  if valid_login(request.form['username'], request.form['password']):
+    with open(request.form['username'] + ".log", "a") as f:
+      time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+      f.write(time + " Synchronization unpaused\n")
+  else:
+    return "Failed"
       
 
 def valid_login(username, password):

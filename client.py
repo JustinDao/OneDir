@@ -391,8 +391,14 @@ def user_command(user_input):
         change_password()
     elif user_input == "pause":
         observer.stop_listening()
+        info = {'username': username, 'password': password}
+        requests.post(server_url + "/log_stop", data=info)
+        print "Synchronzation Off"
     elif user_input == "unpause":
         observer.start_listening()
+        info = {'username': username, 'password': password}
+        requests.post(server_url + "/log_start", data=info)
+        print "Synchronzation On"
     else:
         print user_input + " is not a command."
 
