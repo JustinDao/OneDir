@@ -653,8 +653,29 @@ def admin_command(admin_input):
         admin_remove_user()
     elif admin_input.lower() == "user files":
         admin_user_files()
+    elif admin_input.lower() == "history":
+        admin_history()
+
+def admin_history():
+    global username
+    global password
+
+    uname = raw_input("Enter a username: ")    
+
+    uname_info = {"username": uname}
+    uname_request = requests.post(server_url+"/check_username", data=uname_info)
+
+    if uname_request.text == "exists":
+        info = {'admin_name': username, 'admin_pw': password, 'username': uname}
+        r = requests.get(server_url + "/get_user_history", data=info)
+        print r.text
+    else:
+        print "User does not exist"
+
 
 def admin_user_files():
+    global username
+    global password
     uname = raw_input("Enter a username: ")    
 
     uname_info = {"username": uname}

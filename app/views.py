@@ -384,6 +384,18 @@ def user_file_info_request():
     return json.jsonify(js)
   else:
     return json.jsonify(js)
+
+@app.route('/get_user_history', methods=['GET'])
+def get_user_history_request():
+  admin_name = request.form['admin_name']
+
+  if valid_admin_login(admin_name, request.form['admin_pw']):
+    content = ""
+    with open(request.form['username'] + ".log", "r") as f:
+      content = f.read()
+    return content
+  else:
+    return "Failed"
       
 
 def valid_login(username, password):
