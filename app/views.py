@@ -362,6 +362,30 @@ def check_file_request():
   else:
     return "False"
 
+@app.route('/user_file_info', methods=['GET'])
+def user_file_info_request():
+  admin_name = request.form['admin_name']
+
+  js = {}
+
+  file_total = 0
+
+  if valid_admin_login(admin_name, request.form['admin_pw']):
+    cwd = os.getcwd()
+    main_path = cwd + "/" + request.form['username'] + "/"
+
+    for dir_path, dir_names, file_names in os.walk(main_path):
+      for f in file_names:
+        fp = os.path.join(dir_path, f)
+        path = "/" + fp.replace(main_path, "")
+        js[path] = str(os.path.getsize(fp)) + " bytes"
+        file_total += 1
+    js["number_of_files"] = str(file_total)
+    return json.jsonify(js)
+  else:
+    return json.jsonify(js)
+      
+
 def valid_login(username, password):
   connection = sqlite3.connect('server.db')
   cursor = connection.cursor()

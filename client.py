@@ -651,6 +651,36 @@ def admin_command(admin_input):
         admin_change_password()
     elif admin_input.lower() == "remove user":
         admin_remove_user()
+    elif admin_input.lower() == "user files":
+        admin_user_files()
+
+def admin_user_files():
+    uname = raw_input("Enter a username: ")    
+
+    uname_info = {"username": uname}
+    uname_request = requests.post(server_url+"/check_username", data=uname_info)
+
+    if uname_request.text == "exists":
+        info = {"admin_name": username, "admin_pw": password, "username": uname}
+        r = requests.get(server_url + "/user_file_info", data=info)
+
+        files = r.json()
+        files = unicode_dict_to_string(files)
+
+        num_files = files["number_of_files"]
+
+        del files["number_of_files"]
+
+        print "Number of Files: " + str(num_files)
+
+        print
+
+        for f in files:
+            print f + " " + files[f]
+    else:
+        print "User does not exist"
+
+    
 
 def admin_remove_user():
     global username
