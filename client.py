@@ -571,6 +571,7 @@ def start_service():
     event_handler = OneDirHandler()
     # logging_handler = LoggingEventHandler()
     # observer.schedule(logging_handler, directory, recursive=True)
+    observer = OneDirObserver()
     observer.schedule(event_handler, directory, recursive=True)
 
     observer.start()
@@ -661,6 +662,12 @@ def admin_command(admin_input):
         admin_user_files()
     elif admin_input.lower() == "history":
         admin_history()
+    elif admin_input.lower() == "logout":
+        username = ""
+        password = ""
+        logged_in = False
+        print "You have been logged out."
+        main_program()
 
 def admin_history():
     global username
