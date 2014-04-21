@@ -11,6 +11,7 @@ import collections
 import thread
 import re
 import shutil
+import hashlib
 from Queue import Queue
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
@@ -601,14 +602,18 @@ def user_login():
         username_info = {"username": username}
         username_request = requests.post(server_url+"/check_username", data=username_info)
 
-    password = getpass.getpass("password: ")
+    password_before_hash = getpass.getpass("password: ")
+    password = hashlib.md5(password_before_hash).hexdigest()
 
     login_info = {'username': username, 'password': password}
     r = requests.post(server_url+"/login", data=login_info)
 
     while (r.text != "valid"):
         print "Bad password."
-        password = getpass.getpass("Retype password: ")
+
+        password_before_hash = getpass.getpass("Retype password: ")
+        password = hashlib.md5(password_before_hash).hexdigest()
+
         login_info = {'username': username, 'password': password}
         r = requests.post(server_url+"/login", data=login_info)
 
@@ -628,14 +633,18 @@ def admin_login():
         username_info = {"username": username}
         username_request = requests.post(server_url+"/check_admin", data=username_info)
 
-    password = getpass.getpass("Admin password: ")
+    password_before_hash = getpass.getpass("Admin password: ")
+    password = hashlib.md5(password_before_hash).hexdigest()
 
     login_info = {'username': username, 'password': password}
     r = requests.post(server_url+"/admin_login", data=login_info)
 
     while (r.text != "valid"):
         print "Bad password."
-        password = getpass.getpass("Retype password: ")
+
+        password_before_hash = getpass.getpass("Retype password: ")
+        password = hashlib.md5(password_before_hash).hexdigest()
+
         login_info = {'username': username, 'password': password}
         r = requests.post(server_url+"/admin_login", data=login_info)
 
@@ -648,6 +657,8 @@ def start_admin():
 
 
 def admin_command(admin_input):
+    global username
+    global password
     if admin_input.lower() == "get":
         admin_info = {'username': username, 'password' : password}
         r = requests.post(server_url + "/get_user_data", data=admin_info)
@@ -807,13 +818,15 @@ def main_program():
                 username = raw_input("Username already exists. Enter another username: ")
             username_info = {"username": username}
             username_request = requests.post(server_url+"/check_username", data=username_info)
-        password = getpass.getpass("Enter a password: ")
+        password_before_hash = getpass.getpass("Enter a password: ")
         password_confirmation = getpass.getpass("Confirm your password: ")
 
-        while (password != password_confirmation):
+        while (password_before_hash != password_confirmation):
             print "Passwords did not match."
-            password = getpass.getpass("Re-enter your password: ")
+            password_before_hash = getpass.getpass("Re-enter your password: ")
             password_confirmation = getpass.getpass("Confirm your password: ")
+
+        password = hashlib.md5(password_before_hash).hexdigest()
 
         create_user_info = {'username': username, 'password': password}
 
