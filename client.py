@@ -839,6 +839,9 @@ def main_program():
 
 if __name__ == "__main__":
     try:
+        ip = raw_input("Enter the IP address of the server (leave empty for localhost): ")
+        if ip != "":
+            server_url = "http://" + ip.strip() + ":5000"
         main_program()
     except requests.exceptions.ConnectionError:
         print "Not connected to server."
