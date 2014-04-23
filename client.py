@@ -738,12 +738,15 @@ def admin_remove_user():
 
     if uname_request.text == "exists":
 
-        confirm = raw_input("Are you sure you want to delete your account? (yes/no): ")
-        print "This will delete all of your files and information from the database."
+        confirm = raw_input("Are you sure you want to delete " + uname + "'s account? (yes/no): ")
+
+        file_delete = raw_input("Do you want to remove " + uname + "'s files? (yes/no): ")
+
+        print "This will delete this user from the database."
         confirm2 = raw_input("ARE YOU ABSOLUTELY SURE? (yes/no): ")
 
         if confirm == "yes" and confirm2 == "yes":
-            login_info = {'admin_name': username, 'admin_pw': password, 'username': uname}
+            login_info = {'admin_name': username, 'admin_pw': password, 'username': uname, 'file_delete': file_delete}
             r = requests.delete(server_url+"/admin_delete_user", data=login_info)
 
     else:

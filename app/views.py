@@ -306,7 +306,8 @@ def admin_delete_user_request():
     cwd = os.getcwd()
     main_path = cwd + "/" + username
 
-    shutil.rmtree(main_path)
+    if request.form['file_delete'] == 'yes':
+      shutil.rmtree(main_path)
 
     admin_remove_user(username)
     print "Deleted"
