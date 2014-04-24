@@ -373,35 +373,38 @@ def user_command(user_input):
     global password
     global logged_in
     global observer
-    if user_input == "logout":
+    if user_input.lower() == "logout":
         username = ""
         password = ""
         logged_in = False
         print "You have been logged out."
         main_program()
-    elif user_input == "delete":
+    elif user_input.lower() == "delete":
         deleteAccount()
         main_program()
-    elif user_input == "share":
+    elif user_input.lower() == "share":
         share_files()
-    elif user_input == "history":
+    elif user_input.lower() == "history":
         get_history()
-    elif user_input.split(" ")[0] == "history":
+    elif user_input.split(" ")[0].lower() == "history":
         store_history(user_input.split(" ")[1])
-    elif user_input == "change password":
+    elif user_input.lower() == "change password":
         change_password()
-    elif user_input == "pause":
+    elif user_input.lower() == "pause":
         observer.stop_listening()
         info = {'username': username, 'password': password}
         requests.post(server_url + "/log_stop", data=info)
         print "Synchronzation Off"
-    elif user_input == "unpause":
+    elif user_input.lower() == "unpause":
         observer.start_listening()
         info = {'username': username, 'password': password}
         requests.post(server_url + "/log_start", data=info)
         print "Synchronzation On"
+    elif user_input.lower() == "help":
+        print "logout | delete | share | history | history <file name> | change password | pause | unpause | help"
     else:
         print user_input + " is not a command."
+
 
 def change_password():
     global username
@@ -679,6 +682,10 @@ def admin_command(admin_input):
         logged_in = False
         print "You have been logged out."
         main_program()
+    elif admin_input.lower() == "help":
+        print "get | change | remove user | user files | history | logout | help"
+    else:
+        print admin_input + " is not a command."
 
 def admin_history():
     global username
