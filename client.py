@@ -268,7 +268,7 @@ def folder_listener(handler):
     global logged_in
     global observer
     while True:
-        time.sleep(1)
+        time.sleep(3)
         if not logged_in:
             break
         if not os.path.exists(directory):
@@ -373,38 +373,70 @@ def user_command(user_input):
     global password
     global logged_in
     global observer
-    if user_input.lower() == "logout":
-        username = ""
-        password = ""
-        logged_in = False
-        print "You have been logged out."
-        main_program()
-    elif user_input.lower() == "delete":
-        deleteAccount()
-        main_program()
-    elif user_input.lower() == "share":
-        share_files()
-    elif user_input.lower() == "history":
-        get_history()
-    elif user_input.split(" ")[0].lower() == "history":
-        store_history(user_input.split(" ")[1])
-    elif user_input.lower() == "change password":
-        change_password()
-    elif user_input.lower() == "pause":
-        observer.stop_listening()
-        info = {'username': username, 'password': password}
-        requests.post(server_url + "/log_stop", data=info)
-        print "Synchronzation Off"
-    elif user_input.lower() == "unpause":
-        observer.start_listening()
-        info = {'username': username, 'password': password}
-        requests.post(server_url + "/log_start", data=info)
-        print "Synchronzation On"
-    elif user_input.lower() == "help":
-        print "logout | delete | share | history | history <file name> | change password | pause | unpause | help"
-    else:
+    try:
+        if user_input.lower() == "logout":
+            username = ""
+            password = ""
+            logged_in = False
+            print "You have been logged out."
+            main_program()
+        elif user_input.lower() == "delete":
+            deleteAccount()
+            main_program()
+        elif user_input.lower() == "share":
+            share_files()
+        elif user_input.lower() == "history":
+            get_history()
+        elif user_input.split(" ")[0].lower() == "history":
+            store_history(user_input.split(" ")[1])
+        elif user_input.lower() == "change password":
+            change_password()
+        elif user_input.lower() == "pause":
+            observer.stop_listening()
+            info = {'username': username, 'password': password}
+            requests.post(server_url + "/log_stop", data=info)
+            print "Synchronzation Off"
+        elif user_input.lower() == "unpause":
+            observer.start_listening()
+            info = {'username': username, 'password': password}
+            requests.post(server_url + "/log_start", data=info)
+            print "Synchronzation On"
+        elif user_input.lower() == "help":
+            print "logout | delete | share | history | history <file name> | change password | pause | unpause | add file <path> | delete file <path> | help"
+        elif user_input.split(" ")[0].lower() == "add" and user_input.split(" ")[1].lower() == "file":
+            user_add_file(user_input.split(" ")[2].lower())
+        elif user_input.split(" ")[0].lower() == "delete" and user_input.split(" ")[1].lower() == "file":
+            user_delete_file(user_input.split(" ")[2].lower())
+        else:
+            print user_input + " is not a command."
+    except IndexError:
         print user_input + " is not a command."
 
+def user_add_file(path):
+    try:
+        dest_path = directory + path.split("/")[-1]
+        with open(path, "r") as src_file:
+            with open(dest_path, "w") as dest_file:
+                dest_file.write(src_file.read())
+                print "File added."
+    except IOError: 
+        "File doesn't exist."
+
+
+def user_delete_file(path):
+    try:
+        dest_folder = "/".join(path.split("/")[:-1])
+        if not os.path.exists(directory + dest_folder):
+          print "File does not exist."
+          return
+
+        if os.path.isfile(directory + path):
+          os.remove(directory + path)
+          print "File deleted."
+        elif os.path.isdir(directory + path):
+          print "Not a file."
+    except IOError: 
+        "File doesn't exist."
 
 def change_password():
     global username
