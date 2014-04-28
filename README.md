@@ -35,3 +35,9 @@ You may need to change permissions to allow these files to be run.
 chmod a+x server.py
 chmod a+x client.py
 ```
+
+Extra Features:
+
+* Password Hashing
+* Sharing Files
+* Adding/Deleting files from the command line
